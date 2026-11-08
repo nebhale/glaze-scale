@@ -1,0 +1,21 @@
+simulator.yaml
+  s_bf5d8793b3bf4a::t_7146cd8e387a35 12-13
+tests/maintenance.yaml
+  s_bf5d8793b3bf4a::t_7146cd8e387a35 137-143
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3893e71d73c0cd5068b8d8862966116f7f5cc932",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
