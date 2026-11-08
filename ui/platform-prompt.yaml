@@ -1,0 +1,27 @@
+id: ${page}
+styles: page_style
+widgets:
+  - label: {x: "${screen_inset}", y: "${screen_inset}", text_font: montserrat_24, text: "${title}"}
+  - label: {id: "${prompt_id}", x: "${screen_inset}", y: 85, width: "${screen_content_width}", text: ""}
+  - button:
+      id: ${page}_cancel
+      x: "${screen_inset}"
+      y: 268
+      width: 152
+      height: 44
+      styles: panel_style
+      on_click:
+        - script.execute: ${cancel_action}
+      widgets:
+        - label: {align: CENTER, text: Cancel}
+  - button:
+      id: ${action}_key
+      x: 168
+      y: 268
+      width: 304
+      height: 44
+      styles: primary_style
+      on_click:
+        - script.execute: ${action}
+      widgets:
+        - label: {align: CENTER, text: "${caption}"}

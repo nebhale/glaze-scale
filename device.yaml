@@ -1,0 +1,146 @@
+esphome:
+  name: glaze-scale
+  friendly_name: Glaze Scale
+
+packages:
+  hardware: !include targets/wt32-sc01-plus.yaml
+  studio: !include studio.yaml
+
+preferences:
+  flash_write_interval: 0s
+
+wifi:
+  id: studio_wifi
+  reboot_timeout: 0s
+  on_connect:
+    - lambda: |-
+        glaze::station.manager.network_changed();
+        char ssid[wifi::SSID_BUFFER_SIZE];
+        id(connected_ssid) = id(studio_wifi).wifi_ssid_to(ssid);
+  on_disconnect:
+    - lambda: |-
+        id(connected_ssid).clear();
+  ap:
+    ssid: Glaze Scale Setup
+    password: ${fallback_password}
+    ap_timeout: 1min
+
+captive_portal:
+
+ota:
+  - platform: esphome
+    password: ${ota_password}
+
+globals:
+  - id: load_calibration
+    type: std::array<float, 2>
+    restore_value: true
+    initial_value: '{0, 0}'
+
+light:
+  - id: !extend backlight
+    gamma_correct: 1.0
+
+pn532_i2c:
+  id: reader
+  i2c_id: scale_bus
+  update_interval: 250ms
+  on_tag:
+    then:
+      - lambda: |-
+          glaze::display_power.activity();
+          glaze::station.tag(x, millis());
+  on_tag_removed:
+    then:
+      - lambda: glaze::station.removed(millis());
+
+sensor:
+  - platform: nau7802
+    id: raw_load
+    i2c_id: scale_bus
+    update_interval: 100ms
+    samples_per_second: 80
+    on_value:
+      then:
+        - lambda: |-
+            glaze::device_calibrator.sample(x, millis());
+            const auto &cal = id(load_calibration);
+            if (cal[1] != 0) glaze::station.reading.sample((x - cal[0]) / cal[1], millis());
+
+script:
+  - id: poll_nfc
+    then:
+      - lambda: id(show_nfc_status).execute(id(reader).is_failed(), id(reader).status_has_warning());
+  - id: retry_nfc_read
+    then:
+      - lambda: |-
+          if (!id(reader).is_failed() && id(reader).status_has_warning()) id(reader).update();
+  - id: restart_scale
+    then:
+      - lambda: App.safe_reboot();
+  - id: init_display_power
+    then:
+      - lambda: |-
+          glaze::display_power.begin([](int level) {
+            auto call = id(backlight).make_call();
+            call.set_state(level > 0);
+            if (level > 0) call.set_brightness(level / 100.0f);
+            call.set_transition_length(0).set_save(false).perform();
+          });
+  - id: configure_manager
+    then:
+      - script.execute:
+          id: manager_credentials
+          origin: ${manager_origin}
+          access_id: ${access_client_id}
+          access_secret: ${access_client_secret}
+  - id: manager_credentials
+    parameters:
+      origin: string
+      access_id: string
+      access_secret: string
+    then:
+      - lambda: glaze::station.manager.configure(id(glaze_http), origin, access_id, access_secret);
+  - id: refresh_system_ip
+    then:
+      - lambda: |-
+          network::IPAddress address;
+          if (id(studio_wifi).is_connected())
+            address = id(studio_wifi).wifi_sta_ip_addresses()[0];
+          if (!address.is_set() && id(studio_wifi).is_ap_active())
+            address = id(studio_wifi).wifi_soft_ap_ip();
+          char buffer[network::IP_ADDRESS_BUFFER_SIZE];
+          glaze::label(id(system_ip), address.is_set() ? address.str_to(buffer) : "Offline");
+  - id: scan_wifi
+    then:
+      - lambda: |-
+          id(studio_wifi).set_keep_scan_results(true);
+          id(studio_wifi).start_scanning();
+  - id: refresh_networks
+    then:
+      - lambda: |-
+          std::vector<std::string> choices;
+          {
+            wifi::ScanResultsLock lock(id(studio_wifi));
+            for (const auto &net : id(studio_wifi).get_scan_result()) {
+              std::string name = net.get_ssid().str();
+              if (name.empty() || name.find_first_of("\r\n") != name.npos ||
+                  std::find(choices.begin(), choices.end(), name) != choices.end()) continue;
+              choices.push_back(std::move(name));
+            }
+          }
+          id(show_network_list).execute(std::move(choices));
+  - id: connect_wifi
+    parameters:
+      ssid_value: string
+      password_value: string
+    then:
+      - wifi.configure:
+          ssid: !lambda return ssid_value;
+          password: !lambda return password_value;
+          save: true
+          timeout: 30s
+          on_connect:
+            - script.execute: {id: wifi_result, success: true}
+          on_error:
+            - script.execute: {id: wifi_result, success: false}

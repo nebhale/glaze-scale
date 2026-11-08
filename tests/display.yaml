@@ -1,0 +1,67 @@
+- delay: 1200ms
+- lambda: |-
+    if (lv_screen_active() != id(weigh_page)->obj || *lv_label_get_text(id(identity)) ||
+        !lv_obj_has_state(id(service_icon), LV_STATE_DISABLED)) exit(45);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-home");
+    id(connected_ssid).clear();
+- delay: 200ms
+- lambda: |-
+    if (lv_obj_has_flag(id(wifi_warning), LV_OBJ_FLAG_HIDDEN) ||
+        lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_HIDDEN) ||
+        !lv_obj_has_state(id(service_icon), LV_STATE_DISABLED)) exit(70);
+    id(connected_ssid) = "Studio Wi-Fi";
+    lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
+- delay: 150ms
+- lambda: |-
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-settings");
+    lv_obj_send_event(id(system_key), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(system_settings)->obj ||
+        std::string(lv_label_get_text(id(system_ip))) != "127.0.0.1" ||
+        std::string(lv_label_get_text(id(system_version))) != GLAZE_SCALE_VERSION ||
+        std::string(lv_label_get_text(id(system_esphome))) != ESPHOME_VERSION) exit(46);
+- delay: 150ms
+- lambda: |-
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-system");
+    lv_obj_send_event(id(system_back), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(id(display_key), LV_EVENT_CLICKED, nullptr);
+- delay: 150ms
+- lambda: |-
+    if (lv_screen_active() != id(display_settings)->obj) exit(47);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-display");
+    lv_slider_set_value(id(brightness_slider), 60, LV_ANIM_OFF);
+    lv_obj_send_event(id(brightness_slider), LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_obj_send_event(id(brightness_slider), LV_EVENT_RELEASED, nullptr);
+    if (glaze::display_power.brightness() != 60) exit(48);
+    lv_dropdown_set_selected(id(timeout_select)->obj, 0);
+    lv_obj_send_event(id(timeout_select)->obj, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_obj_send_event(id(display_back), LV_EVENT_CLICKED, nullptr);
+- delay: 30200ms
+- lambda: |-
+    if (!glaze::display_power.asleep()) { ESP_LOGE("test", "Display did not time out"); exit(49); }
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-screen-off");
+# The first tap on the System tile only wakes the screen.
+- script.execute: {id: tap_screen, x: 365, y: 242}
+- script.wait: tap_screen
+- lambda: |-
+    if (glaze::display_power.asleep() || lv_screen_active() != id(device_menu)->obj) exit(50);
+- delay: 30200ms
+- lambda: |-
+    if (!glaze::display_power.asleep()) exit(51);
+    id(panel).process_key(SDLK_UP, true);
+    id(panel).process_key(SDLK_UP, false);
+- delay: 1200ms
+- lambda: |-
+    if (glaze::display_power.asleep() || glaze::station.present) exit(52);
+- delay: 30200ms
+- lambda: |-
+    if (!glaze::display_power.asleep()) { ESP_LOGE("test", "Stationary weight kept screen awake"); exit(53); }
+    id(panel).process_key(SDLK_2, true);
+    id(panel).process_key(SDLK_2, false);
+    if (glaze::display_power.asleep()) { ESP_LOGE("test", "NFC failed to wake before next weight sample"); exit(54); }
+    id(panel).process_key(SDLK_0, true);
+    id(panel).process_key(SDLK_0, false);
+    lv_obj_send_event(id(display_key), LV_EVENT_CLICKED, nullptr);
+    lv_dropdown_set_selected(id(timeout_select)->obj, 4);
+    lv_obj_send_event(id(timeout_select)->obj, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_obj_send_event(id(display_back), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);

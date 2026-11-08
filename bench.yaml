@@ -1,0 +1,22 @@
+esphome:
+  name: glaze-scale-bench
+
+packages:
+  hardware: !include targets/wt32-sc01-plus.yaml
+  screen: !include ui/scaffold.yaml
+
+pn532_i2c:
+  i2c_id: scale_bus
+  update_interval: 250ms
+  on_tag:
+    then:
+      - lambda: 'ESP_LOGI("bench", "Tag: %s", x.c_str());'
+
+sensor:
+  - platform: nau7802
+    id: raw_load
+    i2c_id: scale_bus
+    update_interval: 250ms
+    on_value:
+      then:
+        - lambda: 'ESP_LOGD("bench", "Raw ADC: %.6f", x);'

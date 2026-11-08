@@ -1,5 +1,5 @@
 packages:
-  simulator: !include ../simulator.yaml
+  simulator: !include ../scaffold.yaml
 
 esphome:
   name: glaze-touch-test

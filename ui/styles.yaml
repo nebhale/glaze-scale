@@ -1,0 +1,60 @@
+# Spoolman Scale uses an 8 px outer inset on its 480 × 320 display.
+substitutions:
+  <<: !include corner-radii.yaml
+  screen_inset: "8"
+  screen_content_width: "464"
+
+lvgl:
+  theme:
+    dark_mode: true
+    obj:
+      radius: 0
+      scrollbar: {radius: "${scrollbar_radius}"}
+    button: {radius: "${control_radius}"}
+    textarea:
+      radius: "${control_radius}"
+      scrollbar: {radius: "${scrollbar_radius}"}
+    dropdown: {radius: "${control_radius}"}
+    keyboard:
+      radius: 0
+      items: {radius: "${keyboard_key_radius}"}
+    bar:
+      radius: "${progress_radius}"
+      indicator: {radius: "${progress_radius}"}
+    slider:
+      radius: "${slider_radius}"
+      indicator: {radius: "${slider_radius}"}
+      knob: {radius: "${slider_knob_radius}"}
+  style_definitions:
+    # Runtime-created form buttons bypass ESPHome's per-widget theme.
+    - id: control_corners
+      radius: "${control_radius}"
+    - id: card_corners
+      radius: "${panel_radius}"
+    - id: page_style
+      radius: 0
+      bg_opa: COVER
+      text_font: montserrat_18
+      pad_all: 0
+    - id: panel_style
+      bg_opa: COVER
+      pad_all: 0
+      shadow_width: 0
+    - id: muted_style
+      text_font: montserrat_16
+    - id: accent_style
+      text_font: montserrat_16
+    - id: warning_style
+      text_font: montserrat_16
+    - id: reading_style
+      text_font: montserrat_48
+    - id: track_style
+      bg_color: 0x384151
+    - id: primary_style
+      bg_opa: COVER
+      shadow_width: 0
+      border_width: 0
+    - id: key_style
+      bg_opa: COVER
+      border_width: 1
+      shadow_width: 0

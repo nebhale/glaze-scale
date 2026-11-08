@@ -1,0 +1,7 @@
+styles: key_style
+radius: "${control_radius}"
+scrollbar: {radius: "${scrollbar_radius}"}
+selected:
+  radius: 0
+  checked: {styles: primary_style}
+  pressed: {styles: primary_style}

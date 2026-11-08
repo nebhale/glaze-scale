@@ -1,0 +1,13 @@
+button:
+  id: ${tile}
+  x: ${left}
+  y: ${top}
+  width: 228
+  height: 122
+  styles: panel_style
+  on_click:
+    - script.execute: ${open}
+  widgets:
+    - label: {align: CENTER, y: -30, styles: accent_style, text_font: montserrat_24, text: "${icon}"}
+    - label: {align: CENTER, text_font: montserrat_18, text: "${title}"}
+    - label: {id: "${subtitle_id}", align: CENTER, y: 22, max_width: 214, text_align: CENTER, styles: muted_style, text_font: montserrat_12, long_mode: DOT, text: "${subtitle}"}

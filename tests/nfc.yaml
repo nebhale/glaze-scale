@@ -1,0 +1,51 @@
+packages:
+  simulator: !include ../simulator.yaml
+
+esphome:
+  on_boot:
+    priority: -110
+    then:
+      - delay: 1600ms
+      - lambda: |-
+          if (glaze::nfc.fault != glaze::NfcFault::None ||
+              lv_obj_has_flag(id(nfc_indicator), LV_OBJ_FLAG_CLICKABLE)) exit(21);
+          if (getenv("GLAZE_NFC_RESTART_CHECK")) exit(0);
+          if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("nfc-healthy");
+          id(sim_nfc_read_error) = true;
+      - delay: 450ms
+      - lambda: |-
+          if (glaze::nfc.fault != glaze::NfcFault::None) exit(22);
+          id(sim_nfc_read_error) = false;
+      - delay: 300ms
+      - lambda: id(sim_nfc_read_error) = true;
+      - delay: 1300ms
+      - lambda: |-
+          if (glaze::nfc.fault != glaze::NfcFault::Read || lv_obj_has_flag(id(nfc_warning), LV_OBJ_FLAG_HIDDEN)) exit(23);
+          if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("nfc-unavailable");
+          lv_obj_send_event(id(nfc_indicator), LV_EVENT_CLICKED, nullptr);
+      - delay: 250ms
+      - lambda: |-
+          if (lv_obj_has_flag(id(nfc_dialog), LV_OBJ_FLAG_HIDDEN) ||
+              strcmp(lv_label_get_text(id(nfc_recover_label)), "Retry read")) exit(24);
+          if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("nfc-read");
+          lv_obj_send_event(id(nfc_recover), LV_EVENT_CLICKED, nullptr);
+      - delay: 250ms
+      - lambda: |-
+          if (id(sim_nfc_read_error) || glaze::nfc.fault != glaze::NfcFault::None ||
+              !lv_obj_has_flag(id(nfc_dialog), LV_OBJ_FLAG_HIDDEN)) exit(25);
+          id(sim_nfc_failed) = true;
+      - delay: 250ms
+      - lambda: |-
+          if (glaze::nfc.fault != glaze::NfcFault::Startup) exit(26);
+          lv_obj_send_event(id(nfc_indicator), LV_EVENT_CLICKED, nullptr);
+      - delay: 250ms
+      - lambda: |-
+          if (strcmp(lv_label_get_text(id(nfc_recover_label)), "Restart scale")) exit(27);
+          if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("nfc-startup");
+          lv_obj_send_event(id(nfc_cancel), LV_EVENT_CLICKED, nullptr);
+          if (!lv_obj_has_flag(id(nfc_dialog), LV_OBJ_FLAG_HIDDEN)) exit(28);
+          lv_obj_send_event(id(nfc_indicator), LV_EVENT_CLICKED, nullptr);
+          setenv("GLAZE_NFC_RESTART_CHECK", "1", 1);
+          lv_obj_send_event(id(nfc_recover), LV_EVENT_CLICKED, nullptr);
+      - delay: 2s
+      - lambda: exit(29);

@@ -1,0 +1,51 @@
+# Exercise all combinations, including recovery while another warning is still expanded.
+- repeat:
+    count: 8
+    then:
+      - lambda: |-
+          const bool manager_fault = iteration & 1, nfc_fault = iteration & 2, wifi_fault = iteration & 4;
+          glaze::station.manager.status = manager_fault ? glaze::ServiceStatus::Unavailable : glaze::ServiceStatus::Available;
+          id(sim_nfc_failed) = nfc_fault;
+          id(poll_nfc).execute();
+          id(connected_ssid) = wifi_fault ? "" : "Studio Wi-Fi";
+          glaze::view.update_connections(!wifi_fault);
+      - delay: 150ms
+      - lambda: |-
+          lv_obj_update_layout(id(weigh_page)->obj);
+          struct Slot { lv_obj_t *button, *icon, *warning; };
+          const Slot slots[] = {{id(home_service), id(service_icon), id(service_warning)},
+                                {id(nfc_indicator), id(nfc_icon), id(nfc_warning)},
+                                {id(wifi_indicator), id(home_wifi), id(wifi_warning)}};
+          int right = ${screen_inset} - 1;
+          for (unsigned i = 0; i < 3; ++i) {
+            const auto &slot = slots[i];
+            const bool failed = iteration & (1 << i);
+            lv_area_t button, icon, warning;
+            lv_obj_get_coords(slot.button, &button);
+            lv_obj_get_coords(slot.icon, &icon);
+            if (!lv_obj_is_visible(slot.icon) || button.x1 <= right || icon.x1 < button.x1 || icon.x2 > button.x2 ||
+                lv_obj_is_visible(slot.warning) != failed || lv_obj_has_state(slot.icon, LV_STATE_CHECKED) != failed ||
+                lv_obj_has_flag(slot.button, LV_OBJ_FLAG_CLICKABLE) != failed) {
+              ESP_LOGE("test", "Status slot %u clipped, out of order or in wrong state (mask %u)", i, unsigned(iteration)); exit(113);
+            }
+            if (failed) {
+              lv_obj_get_coords(slot.warning, &warning);
+              lv_point_t tap{(warning.x1 + warning.x2) / 2, (warning.y1 + warning.y2) / 2};
+              if (warning.x1 <= icon.x2 || warning.x2 > button.x2 || lv_indev_search_obj(id(weigh_page)->obj, &tap) != slot.button)
+                exit(114);
+            }
+            right = button.x2;
+          }
+          lv_area_t gear;
+          lv_obj_get_coords(id(home_settings), &gear);
+          if (gear.x1 <= right || gear.x2 != lv_obj_get_width(id(weigh_page)->obj) - ${screen_inset} - 1) exit(115);
+          if (getenv("ESPHOME_SNAPSHOT_DIR")) {
+            const std::string name = "status-bar-" + std::to_string(iteration);
+            id(panel).take_snapshot(name.c_str());
+          }
+- lambda: |-
+    id(sim_nfc_failed) = false;
+    id(poll_nfc).execute();
+    id(connected_ssid) = "Studio Wi-Fi";
+    glaze::station.manager.status = glaze::ServiceStatus::Unchecked;
+    glaze::view.update_connections(true);

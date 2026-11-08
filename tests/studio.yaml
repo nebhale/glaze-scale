@@ -1,0 +1,212 @@
+packages:
+  simulator: !include ../simulator.yaml
+
+esphome:
+  name: glaze-studio-test
+  on_boot:
+    priority: -110
+    then:
+      - if:
+          condition:
+            lambda: return getenv("GLAZE_TEST_RECOVERY") != nullptr;
+          then: !include recovery.yaml
+      - lambda: |-
+          if (getenv("GLAZE_TEST_DISPLAY_RESTART"))
+            exit(glaze::display_power.brightness() == 60 && glaze::display_power.timeout_option() == 4 && id(load_calibration)[0] == 600 ? 0 : 60);
+      - lambda: |-
+          for (auto *control : {id(home_save), id(back_key), id(wifi_key), id(nfc_recover), id(nfc_cancel),
+                                id(manager_recover), id(manager_cancel), id(edit_value), id(timeout_select)->obj,
+                                lv_dropdown_get_list(id(network_list)->obj)})
+            if (lv_obj_get_style_radius(control, LV_PART_MAIN) != ${control_radius}) {
+              ESP_LOGE("test", "Control corner radius differs from the shared radius"); exit(110);
+            }
+          if (lv_obj_get_style_radius(lv_obj_get_parent(id(nfc_cancel)), LV_PART_MAIN) != ${panel_radius} ||
+              lv_obj_get_style_radius(id(reading_panel), LV_PART_MAIN) != ${panel_radius} ||
+              lv_obj_get_style_radius(id(input_keys)->obj, LV_PART_ITEMS) != ${keyboard_key_radius} ||
+              lv_obj_get_style_radius(id(fill_level), LV_PART_INDICATOR) != ${progress_radius} ||
+              lv_obj_get_style_radius(id(brightness_slider), LV_PART_KNOB) != ${slider_knob_radius}) exit(111);
+      - script.execute: test_status_bar
+      - script.wait: test_status_bar
+      - script.execute: test_display
+      - script.wait: test_display
+      - script.execute: test_connections
+      - script.wait: test_connections
+      - script.execute: test_maintenance
+      - script.wait: test_maintenance
+      - delay: 250ms
+      - lambda: |-
+          id(panel).process_key(SDLK_1, true);
+          id(panel).process_key(SDLK_1, false);
+      - delay: 1400ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Ready || std::string(lv_label_get_text(id(amount))) != "506 g" ||
+              lv_color_to_u32(lv_obj_get_style_bg_color(id(weigh_page)->obj, LV_PART_MAIN)) % 0x1000000 != 0x160B20)
+            { ESP_LOGE("test", "Wrong palette, lookup or net weight"); exit(1); }
+          if (strcmp(lv_label_get_text(id(jar_title)), "Seafoam over Blue Rutile") ||
+              strcmp(lv_label_get_text(id(maker_label)), "AMACO • PC-20") ||
+              strcmp(lv_label_get_text(id(weight_basis)), "of 800 g remaining") ||
+              lv_bar_get_value(id(fill_level)) != 63 || !lv_obj_has_flag(id(jar_picker)->obj, LV_OBJ_FLAG_HIDDEN)) exit(79);
+          if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-ready");
+          if (lv_obj_has_flag(id(home_tare), LV_OBJ_FLAG_HIDDEN) || lv_obj_has_state(id(home_save), LV_STATE_DISABLED) || strcmp(lv_label_get_text(id(identity)), "#1") ||
+              lv_obj_has_state(id(service_icon), LV_STATE_DISABLED) || lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_HIDDEN)) exit(30);
+          lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
+          if (lv_screen_active() != id(device_menu)->obj || !lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED)) exit(31);
+          lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
+      - script.execute: {id: tap_screen, x: 90, y: 182}
+      - script.wait: tap_screen
+      - lambda: |-
+          if (lv_screen_active() != id(weigh_page)->obj || glaze::station.screen != glaze::Screen::Home ||
+              glaze::station.state != glaze::State::Ready || glaze::station.jar.number != 1 ||
+              lv_dropdown_is_open(id(jar_picker)->obj)) exit(2);
+          id(simulated_load) = 224;
+      - delay: 1s
+      - lambda: |-
+          if (std::string(lv_label_get_text(id(condition_label))) != "Below tare" ||
+              std::string(lv_label_get_text(id(amount))) != "0 g" ||
+              !lv_obj_has_state(id(home_save), LV_STATE_DISABLED) ||
+              lv_obj_has_state(id(home_tare), LV_STATE_DISABLED)) exit(3);
+          lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+          if (glaze::station.state != glaze::State::Ready) exit(3);
+          id(simulated_load) = 250;
+      - delay: 1s
+      - lambda: |-
+          if (strcmp(lv_label_get_text(id(amount)), "0 g") ||
+              strcmp(lv_label_get_text(id(condition_label)), "Low stock") ||
+              lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(3);
+          id(simulated_load) = 756;
+      - delay: 1s
+      - lambda: |-
+          lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+          lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+      - delay: 350ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Pending || lv_obj_has_flag(id(service_warning), LV_OBJ_FLAG_HIDDEN)) exit(10);
+          id(simulated_load) = 760;
+      - delay: 1400ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Saved || glaze::station.saved_gross != 756 ||
+              !lv_obj_has_flag(id(service_warning), LV_OBJ_FLAG_HIDDEN)) exit(4);
+          glaze::station.removed(millis());
+      - delay: 800ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Idle) exit(5);
+          glaze::station.tag("ABCDEF12", millis());
+      - delay: 500ms
+      - lambda: |-
+          if (glaze::station.screen != glaze::Screen::Home || strcmp(lv_label_get_text(id(jar_title)), "Unlinked jar")) exit(75);
+      - script.execute: {id: tap_screen, x: 90, y: 182}
+      - script.wait: tap_screen
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Unknown || lv_screen_active() != id(weigh_page)->obj ||
+              lv_dropdown_is_open(id(jar_picker)->obj)) exit(75);
+      - script.execute: {id: tap_screen, x: 452, y: 77}
+      - script.wait: tap_screen
+      - delay: 550ms
+      - lambda: |-
+          auto *picker = id(jar_picker)->obj;
+          if (!lv_dropdown_is_open(picker) || lv_dropdown_get_option_count(picker) != 9) exit(86);
+          lv_dropdown_set_selected(picker, 0);
+          lv_dropdown_close(picker);
+          lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+      - delay: 200ms
+      - lambda: |-
+          if (glaze::station.screen != glaze::Screen::Link) exit(6);
+          lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+      - delay: 350ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Ready || glaze::station.jar.number != 2) exit(7);
+          glaze::station.tag("04010203", millis());
+          id(simulated_load) = 600;
+      - delay: 500ms
+      - lambda: |-
+          lv_dropdown_open(id(jar_picker)->obj);
+      - delay: 550ms
+      - lambda: |-
+          auto *picker = id(jar_picker)->obj;
+          lv_dropdown_set_selected(picker, lv_dropdown_get_option_count(picker) - 1);
+          lv_dropdown_close(picker);
+          lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+      - delay: 200ms
+      - lambda: |-
+          auto *field = lv_obj_get_child(id(menu_body), 0);
+          if (lv_obj_get_style_radius(field, LV_PART_MAIN) != ${control_radius}) exit(112);
+          lv_obj_send_event(field, LV_EVENT_CLICKED, nullptr);
+      - delay: 400ms
+      - lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), 0), LV_EVENT_CLICKED, nullptr);
+      - delay: 200ms
+      - lambda: |-
+          if (glaze::station.glaze.label != "Seafoam over Blue Rutile") exit(8);
+          lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+      - delay: 400ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Unknown || glaze::station.saved_gross) exit(11);
+          if (glaze::station.screen != glaze::Screen::Home) exit(76);
+          lv_dropdown_open(id(jar_picker)->obj);
+      - delay: 550ms
+      - lambda: |-
+          auto *picker = id(jar_picker)->obj;
+          lv_dropdown_set_selected(picker, lv_dropdown_get_option_count(picker) - 1);
+          lv_dropdown_close(picker);
+          lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+      - delay: 200ms
+      - lambda: lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+      - delay: 350ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Saved || glaze::station.saved_number != 10) exit(9);
+          if (glaze::station.jar.tare || strcmp(lv_label_get_text(id(amount)), "600 g") ||
+              strcmp(lv_label_get_text(id(weight_basis)), "of 600 g remaining") ||
+              lv_obj_has_flag(id(fill_level), LV_OBJ_FLAG_HIDDEN) || lv_bar_get_value(id(fill_level)) != 100) exit(80);
+          // Set a persistent zero with a tag present and check it again after restarting.
+          lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
+          if (id(load_calibration)[0] != 600) exit(77);
+      - delay: 1s
+      - lambda: |-
+          if (glaze::station.reading.gross(millis()) != 0 || strcmp(lv_label_get_text(id(amount)), "0 g") ||
+              lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(78);
+          exit(0);
+
+script:
+  - id: tap_screen
+    parameters: {x: int, y: int}
+    then:
+      - repeat:
+          count: 2
+          then:
+            - lambda: |-
+                const bool pressed = iteration == 0;
+                SDL_Event event{};
+                event.type = pressed ? SDL_MOUSEBUTTONDOWN : SDL_MOUSEBUTTONUP;
+                event.button.windowID = SDL_GetWindowID(SDL_GetKeyboardFocus());
+                event.button.button = SDL_BUTTON_LEFT;
+                event.button.state = pressed ? SDL_PRESSED : SDL_RELEASED;
+                event.button.x = x;
+                event.button.y = y;
+                SDL_PushEvent(&event);
+            - delay: 160ms
+  - id: test_status_bar
+    then: !include status-bar.yaml
+  - id: test_display
+    then: !include display.yaml
+  - id: test_connections
+    then: !include connections.yaml
+  - id: test_maintenance
+    then: !include maintenance.yaml
+
+interval:
+  - interval: 100ms
+    then:
+      - lambda: |-
+          if (lv_screen_active() != id(weigh_page)->obj) return;
+          lv_obj_update_layout(id(weigh_page)->obj);
+          lv_obj_t *const slots[] = {id(reading_panel), id(jar_title), id(maker_label), id(jar_picker)->obj,
+                                     id(jar_divider), id(amount), id(fill_level), id(condition_label), id(home_tare), id(home_save)};
+          static std::optional<lv_area_t> initial[std::size(slots)];
+          for (size_t i = 0; i < std::size(slots); ++i) {
+            if (!lv_obj_is_visible(slots[i])) continue;
+            lv_area_t bounds;
+            lv_obj_get_coords(slots[i], &bounds);
+            if (!initial[i]) initial[i] = bounds;
+            if (bounds.y1 != initial[i]->y1 || bounds.y2 != initial[i]->y2) {
+              ESP_LOGE("test", "Main screen slot %u moved or resized vertically", unsigned(i)); exit(82);
+            }
+          }

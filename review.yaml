@@ -1,0 +1,108 @@
+esphome:
+  name: glaze-theme-review
+  friendly_name: Glaze Scale Theme Review
+  includes:
+    - ui/palettes.h
+  on_boot:
+    priority: -100
+    then:
+      - script.execute: apply_theme
+      - if:
+          condition:
+            lambda: return getenv("GLAZE_EXPORT_PREVIEWS") != nullptr;
+          then:
+            - script.execute: export_previews
+
+packages:
+  display: !include targets/host.yaml
+  styles: !include ui/styles.yaml
+  review: !include ui/review.yaml
+
+display:
+  - id: !extend panel
+    snapshot_key: SDLK_F12
+
+globals:
+  - id: theme_index
+    type: int
+    initial_value: 'glaze::production_palette'
+
+script:
+  - id: apply_theme
+    then:
+      - if:
+          condition:
+            lambda: return glaze::theme_at(id(theme_index)).numerals == glaze::ReadingFont::Bodoni;
+          then:
+            - lvgl.style.update: {id: reading_style, text_font: bodoni}
+          else:
+            - if:
+                condition:
+                  lambda: return glaze::theme_at(id(theme_index)).numerals == glaze::ReadingFont::Jersey;
+                then:
+                  - lvgl.style.update: {id: reading_style, text_font: jersey}
+                else:
+                  - lvgl.style.update: {id: reading_style, text_font: montserrat_48}
+      - lambda: |-
+          const auto &p = glaze::palette_at(id(theme_index));
+          glaze::apply_palette(id(theme_index), id(page_style), id(panel_style), id(muted_style),
+              id(accent_style), id(warning_style), id(primary_style), id(key_style), id(track_style));
+          if (auto *window = SDL_GetKeyboardFocus()) SDL_SetWindowTitle(window, p.name);
+          ESP_LOGI("review", "Theme: %s", p.name);
+  - id: export_previews
+    then:
+      - repeat:
+          count: !lambda return glaze::palette_count;
+          then:
+            - lambda: id(theme_index) = iteration;
+            - script.execute: apply_theme
+            - lvgl.page.show: ready_preview
+            - delay: 180ms
+            - lambda: |-
+                std::string name = std::string(glaze::palette_at(id(theme_index)).slug) + "-ready";
+                if (!id(panel).take_snapshot(name.c_str())) exit(1);
+            - lvgl.page.show: warning_preview
+            - delay: 180ms
+            - lambda: |-
+                std::string name = std::string(glaze::palette_at(id(theme_index)).slug) + "-warning";
+                if (!id(panel).take_snapshot(name.c_str())) exit(1);
+            - lvgl.page.show: form_preview
+            - delay: 180ms
+            - lambda: |-
+                std::string name = std::string(glaze::palette_at(id(theme_index)).slug) + "-form";
+                if (!id(panel).take_snapshot(name.c_str())) exit(1);
+      - lambda: exit(0);
+
+binary_sensor:
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: cycle_theme
+    key: SDLK_t
+    on_press:
+      - lambda: id(theme_index) = (id(theme_index) + 1) % glaze::palette_count;
+      - script.execute: apply_theme
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: toggle_lilac
+    key: SDLK_p
+    on_press:
+      - lambda: id(theme_index) = (id(theme_index) + glaze::theme_count) % glaze::palette_count;
+      - script.execute: apply_theme
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: show_ready
+    key: SDLK_1
+    on_press:
+      - lvgl.page.show: ready_preview
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: show_warning
+    key: SDLK_2
+    on_press:
+      - lvgl.page.show: warning_preview
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: show_form
+    key: SDLK_3
+    on_press:
+      - lvgl.page.show: form_preview

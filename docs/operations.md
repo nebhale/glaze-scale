@@ -4,8 +4,8 @@
 
 Decision accepted on 2026-11-03: Cloudflare Tunnel with Cloudflare Access
 service-token authentication is the official path for the remote ESPHome scale
-to reach Glaze Manager. Implementation is deferred; this records the deployment
-decision only.
+to reach Glaze Manager. The firmware sends credentials to the configured HTTPS origin and
+disables redirects. The studio tunnel needs to be provisioned separately.
 
 The scale runs at a separate location without another always-on computer.
 Glaze Manager runs in a container on `dockerpi`. The planned request path is:

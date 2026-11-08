@@ -1,0 +1,68 @@
+font:
+  - file: fonts/BodoniModa.ttf
+    id: bodoni
+    size: 54
+    bpp: 4
+    glyphs: "0123456789 g"
+  - file: fonts/Jersey10.ttf
+    id: jersey
+    size: 60
+    bpp: 4
+    glyphs: "0123456789 g"
+
+lvgl:
+  pages:
+    - !include
+      file: weigh-preview.yaml
+      vars:
+        page_id: ready_preview
+        net: 506
+        gross: 756
+        percent: 63
+        status: Stable
+        status_style: accent_style
+        summary: '63% full   /   Previously 524 g'
+    - !include
+      file: weigh-preview.yaml
+      vars:
+        page_id: warning_preview
+        net: 0
+        gross: 224
+        percent: 0
+        status: Below tare
+        status_style: warning_style
+        summary: '224 g gross is below the 250 g jar tare.'
+    - id: form_preview
+      styles: page_style
+      widgets:
+        - label: {x: "${screen_inset}", y: 8, styles: accent_style, text: New jar}
+        - label: {align: TOP_RIGHT, x: "-${screen_inset}", y: 8, styles: muted_style, text: "$18.50"}
+        - label: {x: "${screen_inset}", y: 32, text_font: montserrat_20, text: "Seafoam over Blue Rutile"}
+        - label: {x: "${screen_inset}", y: 60, styles: muted_style, text: "AMACO   /   Cone 06   /   Pint jar"}
+        - label: {x: "${screen_inset}", y: 101, text: Location}
+        - textarea:
+            id: location_field
+            x: 108
+            y: 86
+            width: 364
+            height: 44
+            styles: panel_style
+            pad_all: 8
+            one_line: true
+            text: Studio
+        - keyboard:
+            id: location_keys
+            align: BOTTOM_MID
+            width: 480
+            height: 184
+            styles: page_style
+            pad_all: "${screen_inset}"
+            mode: TEXT_LOWER
+            textarea: location_field
+            items:
+              styles: key_style
+    - id: preview_saved
+      styles: page_style
+      widgets:
+        - label: {align: CENTER, y: -20, text_font: montserrat_28, text: Saved}
+        - label: {align: CENTER, y: 24, styles: muted_style, text: "Remove jar #128"}

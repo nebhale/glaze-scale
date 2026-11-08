@@ -1,0 +1,25 @@
+obj:
+  width: 100%
+  height: 68
+  bg_opa: TRANSP
+  border_width: 0
+  pad_all: 0
+  clickable: false
+  scrollable: false
+  widgets:
+    - obj:
+        x: "${screen_inset}"
+        y: 7
+        # Reserve room for the selector chevron in every jar heading.
+        width: 410
+        height: 33
+        bg_opa: TRANSP
+        border_width: 0
+        pad_all: 0
+        clickable: false
+        scrollable: false
+        layout: {type: FLEX, flex_flow: ROW, flex_align_cross: END, pad_column: 8}
+        widgets:
+          - label: {id: "${title_id}", width: SIZE_CONTENT, height: 33, long_mode: DOT, text_font: montserrat_30, text: ""}
+          - label: {id: "${number_id}", styles: muted_style, translate_y: -3, text: ""}
+    - label: {id: "${maker_id}", x: "${screen_inset}", y: 42, width: 446, height: 24, long_mode: DOT, styles: muted_style, text_font: montserrat_18, text: ""}

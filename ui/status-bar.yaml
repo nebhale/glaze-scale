@@ -1,0 +1,69 @@
+obj:
+  width: 480
+  height: 60
+  styles: page_style
+  pad_all: 0
+  pad_left: "${screen_inset}"
+  pad_right: "${screen_inset}"
+  border_width: 0
+  scrollable: false
+  layout: {type: FLEX, flex_flow: ROW, flex_align_main: END, flex_align_cross: CENTER, flex_align_track: CENTER, pad_column: 8}
+  widgets:
+    - button:
+        <<: &indicator_style
+          width: SIZE_CONTENT
+          height: 44
+          bg_opa: TRANSP
+          shadow_width: 0
+          border_width: 0
+          pad_all: 0
+          pad_left: 4
+          pad_right: 4
+          clickable: false
+          layout: {type: FLEX, flex_flow: ROW, flex_align_cross: CENTER, flex_align_track: CENTER, pad_column: 4}
+        id: home_service
+        on_click:
+          - script.execute: open_manager_warning
+        widgets:
+          - image:
+              id: service_icon
+              src: inventory_jar
+              image_recolor: 0xCFB7E0
+              image_recolor_opa: COVER
+              disabled: {image_opa: 45%}
+              checked: {image_recolor: 0xFBBF24}
+          - label: {id: service_warning, styles: warning_style, hidden: true, text: Unavailable}
+    - button:
+        <<: *indicator_style
+        id: nfc_indicator
+        on_click:
+          - script.execute: open_nfc_warning
+        widgets:
+          - image:
+              id: nfc_icon
+              src: nfc_waves
+              image_recolor: 0xCFB7E0
+              image_recolor_opa: COVER
+              checked: {image_recolor: 0xFBBF24}
+          - label: {id: nfc_warning, styles: warning_style, hidden: true, text: Unavailable}
+    - button:
+        <<: *indicator_style
+        id: wifi_indicator
+        on_click:
+          - if:
+              condition:
+                lambda: return id(connected_ssid).empty();
+              then:
+                - script.execute: open_networks
+        widgets:
+          - label: {id: home_wifi, styles: accent_style, text: "\uF1EB", checked: {styles: warning_style}}
+          - label: {id: wifi_warning, styles: warning_style, hidden: true, text: Unavailable}
+    - button:
+        id: home_settings
+        width: 44
+        height: 44
+        styles: key_style
+        on_click:
+          - script.execute: open_device_menu
+        widgets:
+          - label: {align: CENTER, styles: accent_style, text_font: montserrat_20, text: "\uF013"}

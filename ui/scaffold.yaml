@@ -1,4 +1,9 @@
+substitutions:
+  <<: !include corner-radii.yaml
+
 lvgl:
+  theme:
+    button: {radius: "${control_radius}"}
   pages:
     - id: scaffold
       widgets:

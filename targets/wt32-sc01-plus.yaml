@@ -1,0 +1,68 @@
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: quad
+  speed: 80MHz
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG
+
+# The ST7796 panel is wired as an 8-bit parallel bus on the Plus board.
+spi:
+  type: octal
+  clk_pin: GPIO47
+  data_pins:
+    - GPIO9
+    - {number: GPIO46, ignore_strapping_warning: true}
+    - {number: GPIO3, ignore_strapping_warning: true}
+    - GPIO8
+    - GPIO18
+    - GPIO17
+    - GPIO16
+    - GPIO15
+
+display:
+  - platform: mipi_spi
+    id: panel
+    model: WT32-SC01-PLUS
+    dimensions: 480x320
+    transform:
+      swap_xy: true
+      mirror_x: false
+      mirror_y: false
+    data_rate: 8MHz
+    auto_clear_enabled: false
+    update_interval: never
+
+i2c:
+  - id: touch_bus
+    sda: GPIO6
+    scl: GPIO5
+  - id: scale_bus
+    sda: GPIO10
+    scl: GPIO11
+
+touchscreen:
+  - platform: ft63x6
+    id: touch
+    i2c_id: touch_bus
+    display: panel
+    interrupt_pin: GPIO7
+    transform:
+      swap_xy: true
+      mirror_x: true
+
+output:
+  - platform: ledc
+    id: backlight_pwm
+    pin: {number: GPIO45, ignore_strapping_warning: true}
+
+light:
+  - platform: monochromatic
+    id: backlight
+    output: backlight_pwm
+    restore_mode: ALWAYS_ON

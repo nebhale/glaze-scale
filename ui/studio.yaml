@@ -1,0 +1,212 @@
+lvgl:
+  pages:
+    - id: weigh_page
+      styles: page_style
+      widgets:
+        - !include status-bar.yaml
+        - obj:
+            id: reading_panel
+            clickable: false
+            # The upper band is for the jar. The gradient ends at the divider above the readout.
+            align: BOTTOM_MID
+            y: -64
+            width: "${screen_content_width}"
+            height: 200
+            bg_grad_stop: 94
+            scrollable: false
+            styles: [panel_style, card_corners]
+            widgets:
+              - !include
+                file: jar-heading.yaml
+                vars: {title_id: jar_title, number_id: identity, maker_id: maker_label}
+              - obj:
+                  id: jar_divider
+                  y: 74
+                  width: 100%
+                  height: 1
+                  styles: track_style
+                  bg_opa: COVER
+                  border_width: 0
+                  pad_all: 0
+                  scrollable: false
+                  clickable: false
+              - obj:
+                  id: weight_line
+                  align: BOTTOM_LEFT
+                  x: 6
+                  y: -48
+                  width: 448
+                  height: 58
+                  bg_opa: TRANSP
+                  border_width: 0
+                  pad_all: 0
+                  clickable: false
+                  scrollable: false
+                  layout: {type: FLEX, flex_flow: ROW, flex_align_cross: END, pad_column: 12}
+                  widgets:
+                    - label: {id: amount, styles: reading_style, text: "--"}
+                    - label: {id: weight_basis, flex_grow: 1, long_mode: DOT, styles: muted_style, text_font: montserrat_18, translate_y: -6, text: ""}
+              - bar:
+                  id: fill_level
+                  clickable: false
+                  x: "${screen_inset}"
+                  y: 154
+                  width: 446
+                  height: 8
+                  value: 0
+                  hidden: true
+                  styles: track_style
+                  bg_opa: COVER
+                  indicator: {styles: primary_style}
+              - label:
+                  id: condition_label
+                  x: "${screen_inset}"
+                  y: 167
+                  width: 446
+                  height: 24
+                  long_mode: SCROLL_CIRCULAR
+                  styles: accent_style
+                  text: ""
+        - dropdown:
+            id: jar_picker
+            x: "${screen_inset}"
+            y: 56
+            width: "${screen_content_width}"
+            height: 44
+            styles: [key_style, muted_style]
+            text_font: montserrat_18
+            pad_left: 8
+            bg_opa: TRANSP
+            border_width: 0
+            options: [""]
+            dropdown_list:
+              <<: !include dropdown-list.yaml
+              # Let LVGL fit the list between the selector and the bottom of the screen.
+              max_height: 100%
+            on_ready:
+              - lambda: glaze::view.load_jars();
+            on_value:
+              - lambda: glaze::view.choose_jar();
+        - button:
+            id: home_tare
+            x: "${screen_inset}"
+            y: 268
+            width: 152
+            height: 44
+            styles: primary_style
+            bg_color: 0x292010
+            bg_grad_dir: NONE
+            border_width: 1
+            border_color: 0x3B3112
+            text_color: 0xF3B738
+            state: {disabled: true}
+            disabled: &home_action_disabled
+              bg_color: 0x19151F
+              border_width: 0
+              text_color: 0xBDB4C3
+            on_click:
+              - lambda: glaze::view.tare(id(load_calibration));
+            widgets:
+              - label: {align: CENTER, text: "\uF021  Tare"}
+        - button:
+            id: home_save
+            x: 168
+            y: 268
+            width: 304
+            height: 44
+            styles: primary_style
+            bg_color: 0x183021
+            bg_grad_dir: NONE
+            border_width: 1
+            border_color: 0x295031
+            text_color: 0x41C082
+            state: {disabled: true}
+            disabled: *home_action_disabled
+            on_click:
+              - lambda: glaze::view.save();
+            widgets:
+              - label: {align: CENTER, text: "\uF0C7  Save"}
+        - !include
+          file: status-dialog.yaml
+          vars: {prefix: nfc, title: NFC unavailable, caption: "", action: recover_nfc}
+        - !include
+          file: status-dialog.yaml
+          vars: {prefix: manager, title: Glaze Manager unavailable, caption: Retry, action: retry_manager_connection}
+    - id: menu_page
+      styles: page_style
+      widgets:
+        - label: {id: menu_title, x: 60, y: 14, width: 412, text_font: montserrat_24, long_mode: DOT, text: ""}
+        - obj:
+            id: menu_body
+            x: "${screen_inset}"
+            y: 60
+            width: "${screen_content_width}"
+            height: 200
+            styles: page_style
+            border_width: 0
+            pad_all: 0
+        - obj:
+            id: link_card
+            x: "${screen_inset}"
+            y: 56
+            width: "${screen_content_width}"
+            height: 74
+            styles: [panel_style, card_corners]
+            hidden: true
+            scrollable: false
+            widgets:
+              - !include
+                file: jar-heading.yaml
+                vars: {title_id: link_title, number_id: link_number, maker_id: link_maker}
+        - button:
+            <<: !include back-button.yaml
+            id: back_key
+            on_click:
+              - lambda: glaze::view.back();
+        - button:
+            id: menu_action
+            x: 168
+            y: 268
+            width: 304
+            height: 44
+            styles: primary_style
+            on_click:
+              - lambda: glaze::view.menu_action();
+            widgets:
+              - label: {id: menu_action_text, align: CENTER, text: ""}
+    - id: edit_page
+      styles: page_style
+      widgets:
+        - label: {id: edit_title, x: "${screen_inset}", y: 8, text_font: montserrat_24, text: ""}
+        - label: {id: edit_context, align: TOP_RIGHT, x: "-${screen_inset}", y: 12, width: 320, text_align: RIGHT, long_mode: DOT, styles: muted_style, text: ""}
+        - label: {id: edit_caption, x: "${screen_inset}", y: 54, text: ""}
+        - textarea:
+            id: edit_value
+            x: 108
+            y: 42
+            width: 364
+            height: 44
+            styles: panel_style
+            pad_all: 8
+            one_line: true
+            max_length: 200
+        - obj:
+            id: location_matches
+            x: "${screen_inset}"
+            y: 92
+            width: "${screen_content_width}"
+            height: 44
+            styles: page_style
+            border_width: 0
+            scroll_dir: HOR
+            pad_all: 0
+        - keyboard:
+            id: input_keys
+            align: BOTTOM_MID
+            width: 480
+            height: 184
+            styles: page_style
+            pad_all: "${screen_inset}"
+            mode: TEXT_LOWER
+            textarea: edit_value
+            items: {styles: key_style}

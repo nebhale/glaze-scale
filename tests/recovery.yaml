@@ -1,0 +1,71 @@
+# Each phase starts a fresh simulator process. The first two exit without running
+# shutdown hooks, so recovery depends on the original synchronous flash write.
+- if:
+    condition:
+      lambda: return std::string(getenv("GLAZE_TEST_RECOVERY")) == "start";
+    then:
+      - lambda: |-
+          glaze::station.device = "glaze-recovery-test";
+          const bool setup = getenv("GLAZE_TEST_CREATE") != nullptr;
+          glaze::station.tag(setup ? "B1B2B3B4" : "A1A2A3A4", millis());
+          id(simulated_load) = setup ? 600 : 475;
+      - delay: 1300ms
+      - if:
+          condition:
+            lambda: return getenv("GLAZE_TEST_CREATE") != nullptr;
+          then:
+            - lambda: |-
+                glaze::station.begin_setup();
+                glaze::station.selected_draft.name = "Mist Blue";
+                glaze::station.selected_draft.code = "MB-12";
+                glaze::station.glaze = {"", "Mist Blue", "MB-12"};
+                glaze::station.location = "Kiln room";
+                glaze::station.cost = "15.50";
+            - delay: 200ms
+            - lambda: lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+          else:
+            - lambda: lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+      - delay: 450ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Pending || lv_obj_has_flag(id(service_warning), LV_OBJ_FLAG_HIDDEN)) exit(140);
+          glaze::station.removed(millis());
+          id(simulated_load) = 0;
+      - delay: 2100ms
+      - lambda: |-
+          if (glaze::station.state != glaze::State::Pending || glaze::station.present || glaze::station.selected() ||
+              !glaze::station.reading.stable(millis()) || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(141);
+          if (getenv("ESPHOME_SNAPSHOT_DIR"))
+            id(panel).take_snapshot(getenv("GLAZE_TEST_CREATE") ? "create-lifted" : "save-lifted");
+          glaze::station.tag("CCDD", millis());
+          id(simulated_load) = 820;
+      - delay: 1s
+      - lambda: |-
+          glaze::station.select_jar("2");
+          glaze::station.begin_setup();
+          glaze::station.confirm(millis());
+          if (glaze::station.state != glaze::State::Pending || glaze::station.screen != glaze::Screen::Home ||
+              !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(142);
+          std::_Exit(0);
+- delay: 1600ms
+- if:
+    condition:
+      lambda: return std::string(getenv("GLAZE_TEST_RECOVERY")) == "restart";
+    then:
+      - lambda: |-
+          const auto &pending = glaze::station.pending_save();
+          const bool setup = getenv("GLAZE_TEST_CREATE") != nullptr;
+          if (!pending.active() || pending.setup() != setup || pending.displayed_g != (setup ? 600 : 225) ||
+              glaze::station.selected() || glaze::station.reading.gross(millis()) != 0 ||
+              !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(143);
+          if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot(setup ? "create-restarted" : "save-restarted");
+          std::_Exit(0);
+- lambda: |-
+    if (glaze::station.pending_save().active() || glaze::station.state != glaze::State::Idle) exit(144);
+    if (std::string(getenv("GLAZE_TEST_RECOVERY")) == "clean") {
+      if (!glaze::station.notice.empty()) exit(145);
+      exit(0);
+    }
+    const bool setup = getenv("GLAZE_TEST_CREATE") != nullptr;
+    if (glaze::station.notice.find(setup ? "Created jar #" : "Saved jar #") != 0) exit(146);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot(setup ? "create-confirmed" : "save-confirmed");
+    exit(0);

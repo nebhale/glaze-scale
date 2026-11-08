@@ -1,0 +1,68 @@
+id: ${page_id}
+styles: page_style
+widgets:
+  - label:
+      x: "${screen_inset}"
+      y: 12
+      styles: accent_style
+      text: "JAR #128"
+  - label:
+      align: TOP_RIGHT
+      x: "-${screen_inset}"
+      y: 12
+      styles: muted_style
+      text: "AMACO   /   Cone 06"
+  - label:
+      x: "${screen_inset}"
+      y: 42
+      width: "${screen_content_width}"
+      text_font: montserrat_24
+      text: Seafoam over Blue Rutile
+  - obj:
+      x: "${screen_inset}"
+      y: 84
+      width: "${screen_content_width}"
+      height: 166
+      styles: [panel_style, card_corners]
+      widgets:
+        - label:
+            x: "${screen_inset}"
+            y: 12
+            styles: muted_style
+            text: Glaze remaining
+        - label:
+            x: 6
+            y: 32
+            styles: reading_style
+            text: "${net} g"
+        - label:
+            align: TOP_RIGHT
+            x: "-${screen_inset}"
+            y: 17
+            styles: ${status_style}
+            text: "${status}"
+        - bar:
+            x: "${screen_inset}"
+            y: 105
+            width: 446
+            height: 6
+            value: ${percent}
+            styles: track_style
+            indicator:
+              styles: primary_style
+        - label:
+            x: "${screen_inset}"
+            y: 128
+            text: "${summary}"
+  - button:
+      x: 168
+      y: 268
+      width: 304
+      height: 44
+      styles: primary_style
+      on_click:
+        - lvgl.page.show: preview_saved
+      widgets:
+        - label:
+            align: CENTER
+            text: "Save ${gross} g gross"

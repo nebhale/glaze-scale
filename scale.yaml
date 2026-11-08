@@ -1,0 +1,9 @@
+substitutions:
+  manager_origin: !secret manager_origin
+  access_client_id: !secret access_client_id
+  access_client_secret: !secret access_client_secret
+  ota_password: !secret ota_password
+  fallback_password: !secret fallback_password
+
+packages:
+  firmware: !include device.yaml

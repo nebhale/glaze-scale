@@ -1,0 +1,65 @@
+- lambda: |-
+    if (lv_obj_has_flag(id(wifi_indicator), LV_OBJ_FLAG_CLICKABLE) ||
+        lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_CLICKABLE)) exit(100);
+    id(connected_ssid).clear();
+- delay: 250ms
+- lambda: |-
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("wifi-unavailable");
+    lv_area_t bounds;
+    lv_obj_get_coords(id(wifi_warning), &bounds);
+    lv_point_t point{bounds.x2 - 4, (bounds.y1 + bounds.y2) / 2};
+    if (lv_indev_search_obj(lv_screen_active(), &point) != id(wifi_indicator)) exit(101);
+    lv_obj_send_event(id(wifi_indicator), LV_EVENT_CLICKED, nullptr);
+    auto *picker = id(network_list)->obj;
+    if (lv_screen_active() != id(networks_page)->obj || lv_obj_has_state(picker, LV_STATE_DISABLED) ||
+        lv_dropdown_get_option_count(picker) != 2 || !id(chosen_ssid).empty()) exit(102);
+- delay: 250ms
+- lambda: |-
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("wifi-picker");
+    lv_obj_send_event(id(network_list)->obj, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_obj_send_event(id(settings_cancel), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(id(networks_back), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(weigh_page)->obj || glaze::view.settings_open) exit(103);
+    id(connected_ssid) = "Studio Wi-Fi";
+    auto &manager = glaze::station.manager;
+    manager.configure(id(glaze_http), "http://127.0.0.1:1");
+    if (manager.check_connection()) exit(104);
+- delay: 250ms
+- lambda: |-
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("inventory-unavailable");
+    for (auto *child : {id(service_icon), id(service_warning)}) {
+      lv_area_t bounds;
+      lv_obj_get_coords(child, &bounds);
+      lv_point_t point{(bounds.x1 + bounds.x2) / 2, (bounds.y1 + bounds.y2) / 2};
+      if (lv_indev_search_obj(lv_screen_active(), &point) != id(home_service)) exit(105);
+    }
+    lv_obj_send_event(id(home_service), LV_EVENT_CLICKED, nullptr);
+- delay: 250ms
+- lambda: |-
+    if (lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN)) exit(106);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("inventory-retry");
+    lv_obj_send_event(id(manager_cancel), LV_EVENT_CLICKED, nullptr);
+    if (!lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN)) exit(107);
+    lv_obj_send_event(id(home_service), LV_EVENT_CLICKED, nullptr);
+    id(connected_ssid).clear();
+    lv_obj_send_event(id(manager_recover), LV_EVENT_CLICKED, nullptr);
+- delay: 300ms
+- lambda: |-
+    if (lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
+        strcmp(lv_label_get_text(id(manager_reason)), "Reconnect Wi-Fi, then retry.")) exit(116);
+    id(connected_ssid) = "Studio Wi-Fi";
+    glaze::station.manager.network_changed();
+    lv_obj_send_event(id(manager_recover), LV_EVENT_CLICKED, nullptr);
+- delay: 300ms
+- lambda: |-
+    if (lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
+        strcmp(lv_label_get_text(id(manager_reason)), "Inventory is still unavailable. Try again.")) exit(108);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("inventory-still-unavailable");
+    id(configure_manager).execute();
+    lv_obj_send_event(id(manager_recover), LV_EVENT_CLICKED, nullptr);
+- delay: 300ms
+- lambda: |-
+    if (glaze::station.manager.status != glaze::ServiceStatus::Available ||
+        !lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
+        !lv_obj_has_flag(id(service_warning), LV_OBJ_FLAG_HIDDEN) ||
+        lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_CLICKABLE)) exit(109);

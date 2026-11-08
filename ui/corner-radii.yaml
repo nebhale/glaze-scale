@@ -1,0 +1,8 @@
+# LVGL radii in physical pixels on the 480 × 320 display.
+control_radius: "8"       # Actions, tiles, form rows, suggestions, fields and dropdowns
+panel_radius: "12"        # Cards and dialog panels
+keyboard_key_radius: "6"
+scrollbar_radius: "2"
+progress_radius: "4"      # 8 px progress track
+slider_radius: "6"        # 12 px brightness track
+slider_knob_radius: "16"  # 32 px brightness knob

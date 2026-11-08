@@ -1,0 +1,181 @@
+# Exercise the studio and board's shared controls using simulated radio and load-cell inputs.
+- delay: 1900ms
+- lambda: |-
+    if (lv_screen_active() != id(weigh_page)->obj || lv_obj_has_state(id(home_tare), LV_STATE_DISABLED) ||
+        !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(32);
+    lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(device_menu)->obj) exit(33);
+- delay: 200ms
+- lambda: |-
+    lv_obj_send_event(id(wifi_key), LV_EVENT_CLICKED, nullptr);
+    auto *picker = id(network_list)->obj;
+    if (lv_screen_active() != id(networks_page)->obj || !id(chosen_ssid).empty() ||
+        strcmp(lv_dropdown_get_text(picker), "Choose a network") || lv_dropdown_get_selected_highlight(picker)) exit(35);
+    // Tapping even the first (currently connected) SSID opens an empty password prompt.
+    lv_dropdown_set_selected(picker, 0);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (lv_screen_active() != id(settings_editor)->obj || id(chosen_ssid) != "Studio Wi-Fi" ||
+        !lv_textarea_get_password_mode(id(settings_value)) || *lv_textarea_get_text(id(settings_value))) exit(36);
+    lv_textarea_add_char(id(settings_value), 'x');
+    if (strchr(lv_label_get_text(lv_textarea_get_label(id(settings_value))), 'x')) exit(61);
+    lv_obj_send_event(id(settings_cancel), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(networks_page)->obj || !id(chosen_ssid).empty() || *lv_textarea_get_text(id(settings_value))) exit(62);
+    lv_obj_send_event(id(scan_now), LV_EVENT_CLICKED, nullptr);
+    lv_dropdown_set_selected(picker, 1);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (id(chosen_ssid) != "Workshop") exit(63);
+    lv_textarea_set_text(id(settings_value), "wrong");
+    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+- delay: 550ms
+- lambda: |-
+    if (id(connected_ssid) != "Studio Wi-Fi" || strstr(lv_label_get_text(id(wifi_status)), "Failed") == nullptr) exit(37);
+    lv_obj_send_event(id(wifi_key), LV_EVENT_CLICKED, nullptr);
+    auto *picker = id(network_list)->obj;
+    id(connected_ssid).clear();
+    id(show_network_list).execute({});
+    if (!lv_obj_has_state(picker, LV_STATE_DISABLED)) exit(64);
+    lv_obj_send_event(id(scan_now), LV_EVENT_CLICKED, nullptr);
+    if (lv_obj_has_state(picker, LV_STATE_DISABLED) || !id(chosen_ssid).empty()) exit(65);
+    lv_dropdown_set_selected(picker, 1);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_textarea_set_text(id(settings_value), "studio");
+    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+- delay: 550ms
+- lambda: |-
+    if (id(connected_ssid) != "Workshop" || *lv_textarea_get_text(id(settings_value))) exit(38);
+    lv_obj_send_event(id(wifi_key), LV_EVENT_CLICKED, nullptr);
+    if (!id(chosen_ssid).empty() || strcmp(lv_dropdown_get_text(id(network_list)->obj), "Choose a network")) exit(66);
+    id(open_device_menu).execute();
+    lv_obj_send_event(id(calibrate_key), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(id(capture_empty_key), LV_EVENT_CLICKED, nullptr);
+    lv_textarea_set_text(id(settings_value), "0");
+    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(settings_editor)->obj) exit(39);
+    id(simulated_load) = 200;
+- delay: 1200ms
+- lambda: |-
+    lv_textarea_set_text(id(settings_value), "100");
+    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(device_menu)->obj || id(load_calibration)[1] != 2) exit(40);
+    lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
+- delay: 1200ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(amount)), "100 g")) exit(41);
+    lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
+    if (id(load_calibration)[0] != 200 || id(load_calibration)[1] != 2) exit(42);
+- delay: 1s
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(amount)), "0 g") || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(71);
+    auto *picker = id(jar_picker)->obj;
+    lv_dropdown_open(picker);
+- delay: 650ms
+- lambda: |-
+    auto *picker = id(jar_picker)->obj;
+    if (lv_dropdown_get_option_count(picker) != 9) exit(72);
+    lv_obj_update_layout(picker);
+    auto *list = lv_dropdown_get_list(picker);
+    lv_area_t choices, selector;
+    lv_obj_get_coords(list, &choices);
+    lv_obj_get_coords(picker, &selector);
+    if (choices.y1 != selector.y2 + 1 || choices.y2 >= lv_obj_get_height(lv_screen_active()) ||
+        lv_obj_get_scroll_bottom(list) <= 0) exit(83);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-jar-list");
+    lv_obj_scroll_to_y(list, lv_obj_get_scroll_bottom(list), LV_ANIM_OFF);
+    lv_dropdown_set_selected(picker, 8);
+    lv_dropdown_close(picker);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (!glaze::station.manual || glaze::station.jar.number != 9) exit(84);
+    lv_dropdown_open(picker);
+- delay: 650ms
+- lambda: |-
+    auto *picker = id(jar_picker)->obj;
+    // The first row now clears the selection. Jar #9 stays highlighted across API pages.
+    if (lv_dropdown_get_option_count(picker) != 10 || lv_dropdown_get_selected(picker) != 9) exit(85);
+    lv_dropdown_set_selected(picker, 2);
+    lv_dropdown_close(picker);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+    // A preselection survives a settled empty platform, including small baseline jitter.
+    id(simulated_load) = 202;
+- delay: 1s
+- lambda: id(simulated_load) = 200;
+- delay: 1s
+- lambda: |-
+    if (!glaze::station.manual || strcmp(lv_label_get_text(id(identity)), "#2")) exit(130);
+    id(simulated_load) = 900;
+- delay: 350ms
+- lambda: |-
+    if (!glaze::station.manual || glaze::station.jar.number != 2 ||
+        !lv_obj_has_state(id(home_tare), LV_STATE_DISABLED) || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(43);
+    lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+    if (id(load_calibration)[0] != 200 || glaze::station.state != glaze::State::Ready) exit(73);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-settling");
+- delay: 900ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(identity)), "#2") || strcmp(lv_label_get_text(id(weight_basis)), "of 800 g remaining") ||
+        lv_obj_has_flag(id(jar_picker)->obj, LV_OBJ_FLAG_HIDDEN)) exit(81);
+    if (strcmp(lv_label_get_text(id(amount)), "100 g") || strcmp(lv_label_get_text(id(condition_label)), "Low stock") ||
+        lv_obj_has_state(id(home_tare), LV_STATE_DISABLED) ||
+        lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(44);
+    // An empty container still on the platform has zero net weight.
+    id(simulated_load) = 700;
+- delay: 1s
+- lambda: |-
+    if (!glaze::station.manual || strcmp(lv_label_get_text(id(amount)), "0 g")) exit(131);
+    id(simulated_load) = 200;
+- delay: 250ms
+- lambda: |-
+    if (!glaze::station.manual || glaze::station.reading.stable(millis())) exit(132);
+    id(simulated_load) = 900;
+- delay: 1s
+- lambda: |-
+    lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+- delay: 1500ms
+- lambda: |-
+    if (glaze::station.state != glaze::State::Saved || glaze::station.saved_gross != 350) exit(74);
+    id(simulated_load) = 200;
+- delay: 1s
+- lambda: |-
+    if (glaze::station.selected() || glaze::station.state != glaze::State::Idle ||
+        *lv_label_get_text(id(jar_title)) || *lv_label_get_text(id(identity)) || strcmp(lv_label_get_text(id(amount)), "0 g") ||
+        lv_obj_has_state(id(home_tare), LV_STATE_DISABLED) || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(133);
+    id(simulated_load) = 900;
+- delay: 1s
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(amount)), "350 g") || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(134);
+    lv_dropdown_open(id(jar_picker)->obj);
+- delay: 650ms
+- lambda: |-
+    auto *picker = id(jar_picker)->obj;
+    lv_dropdown_set_selected(picker, 2);
+    lv_dropdown_close(picker);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (!glaze::station.manual || glaze::station.jar.number != 3) exit(135);
+    lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
+- delay: 1s
+- lambda: |-
+    if (!glaze::station.manual || glaze::station.reading.gross(millis()) != 0) exit(136);
+    id(simulated_load) = 1600;
+- delay: 1s
+- lambda: |-
+    lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+- delay: 150ms
+- lambda: |-
+    if (glaze::station.state != glaze::State::Pending) exit(137);
+    id(simulated_load) = 900;
+- wait_until:
+    condition:
+      lambda: return !glaze::station.manual;
+    timeout: 2s
+- lambda: |-
+    if (glaze::station.selected() || glaze::station.jar.valid() || !glaze::station.reading.stable(millis())) exit(138);
+    id(simulated_load) = 1800;
+- delay: 1400ms
+- lambda: |-
+    if (glaze::station.state != glaze::State::Idle || *lv_label_get_text(id(identity)) ||
+        strcmp(lv_label_get_text(id(amount)), "450 g") || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(139);
+    // Restore the default input for the following NFC weigh-ins.
+    id(simulated_load) = 0;
+    id(load_calibration) = {0, 1};

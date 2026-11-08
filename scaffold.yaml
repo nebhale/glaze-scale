@@ -1,0 +1,7 @@
+esphome:
+  name: glaze-scale-scaffold
+  friendly_name: Glaze Scale
+
+packages:
+  host_display: !include targets/host.yaml
+  screen: !include ui/scaffold.yaml

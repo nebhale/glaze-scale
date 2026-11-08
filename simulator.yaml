@@ -1,7 +1,141 @@
 esphome:
+  includes:
+    - <esphome/components/host/core.h>
   name: glaze-scale-sim
   friendly_name: Glaze Scale
 
 packages:
   host_display: !include targets/host.yaml
-  screen: !include ui/scaffold.yaml
+  studio: !include studio.yaml
+
+preferences:
+  flash_write_interval: 0s
+
+display:
+  - id: !extend panel
+    snapshot_key: SDLK_F12
+
+script:
+  - id: poll_nfc
+    then:
+      - lambda: id(show_nfc_status).execute(id(sim_nfc_failed), id(sim_nfc_read_error));
+  - id: retry_nfc_read
+    then:
+      - lambda: id(sim_nfc_read_error) = false;
+  - id: restart_scale
+    then:
+      - lambda: |-
+          esphome::host::arm_reexec(esphome::host::get_exe_path());
+          App.safe_reboot();
+  - id: init_display_power
+    then:
+      - lambda: glaze::display_power.begin(nullptr);
+  - id: configure_manager
+    then:
+      - lambda: |-
+          id(connected_ssid) = "Studio Wi-Fi";
+          const char *origin = getenv("GLAZE_SIM_ORIGIN");
+          if (origin) glaze::station.manager.configure(id(glaze_http), origin);
+
+  - id: refresh_system_ip
+    then:
+      - lambda: glaze::label(id(system_ip), "127.0.0.1");
+  - id: scan_wifi
+    then:
+      - script.execute: refresh_networks
+  - id: refresh_networks
+    then:
+      - lambda: id(show_network_list).execute({"Studio Wi-Fi", "Workshop"});
+  - id: connect_wifi
+    parameters:
+      ssid_value: string
+      password_value: string
+    then:
+      - delay: 400ms
+      - lambda: |-
+          bool known = ssid_value == "Studio Wi-Fi" || ssid_value == "Workshop";
+          bool success = known && password_value == "studio";
+          if (success && id(connected_ssid) != ssid_value) {
+            id(connected_ssid) = ssid_value;
+            glaze::station.manager.network_changed();
+          }
+          id(wifi_result).execute(success);
+
+globals:
+  - {id: sim_nfc_failed, type: bool, initial_value: 'false'}
+  - {id: sim_nfc_read_error, type: bool, initial_value: 'false'}
+  - id: load_calibration
+    restore_value: true
+    type: std::array<float, 2>
+    initial_value: '{0, 1}'
+  - id: simulated_load
+    type: int
+    initial_value: '0'
+
+interval:
+  - interval: 100ms
+    then:
+      - lambda: |-
+          const float raw = id(simulated_load);
+          glaze::device_calibrator.sample(raw, millis());
+          const auto &cal = id(load_calibration);
+          glaze::station.reading.sample((raw - cal[0]) / cal[1], millis());
+
+binary_sensor:
+  - platform: sdl
+    id: simulate_nfc_startup_fault
+    key: SDLK_4
+    on_press:
+      - lambda: id(sim_nfc_failed) = true;
+  - platform: sdl
+    id: simulate_nfc_read_fault
+    key: SDLK_5
+    on_press:
+      - lambda: id(sim_nfc_read_error) = true;
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: known_jar
+    key: SDLK_1
+    on_press:
+      - lambda: |-
+          id(simulated_load) = 756;
+          glaze::display_power.activity();
+          glaze::station.tag("04A2B3C4D5E6F7", millis());
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: unknown_jar
+    key: SDLK_2
+    on_press:
+      - lambda: |-
+          id(simulated_load) = 600;
+          glaze::display_power.activity();
+          glaze::station.tag("04010203", millis());
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: remove_jar
+    key: SDLK_0
+    on_press:
+      - lambda: |-
+          id(simulated_load) = 0;
+          glaze::station.removed(millis());
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: below_tare
+    key: SDLK_3
+    on_press:
+      - lambda: |-
+          id(simulated_load) = 224;
+          glaze::display_power.activity();
+          glaze::station.tag("04A2B3C4D5E6F7", millis());
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: add_weight
+    key: SDLK_UP
+    on_press:
+      - lambda: id(simulated_load) += 10;
+  - platform: sdl
+    trigger_on_initial_state: true
+    id: subtract_weight
+    key: SDLK_DOWN
+    on_press:
+      - lambda: id(simulated_load) -= 10;

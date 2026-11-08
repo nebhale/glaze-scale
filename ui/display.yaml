@@ -1,0 +1,62 @@
+script:
+  - id: open_display
+    then:
+      - lambda: |-
+          int brightness = glaze::display_power.brightness();
+          lv_slider_set_value(id(brightness_slider), brightness, LV_ANIM_OFF);
+          glaze::label(id(brightness_label), std::to_string(brightness) + "%");
+          lv_dropdown_set_selected(id(timeout_select)->obj, glaze::display_power.timeout_option());
+      - lvgl.page.show: display_settings
+
+lvgl:
+  pages:
+    - id: display_settings
+      styles: page_style
+      widgets:
+        - label: {align: TOP_MID, y: 10, text_font: montserrat_24, text: Display}
+        - button:
+            <<: !include back-button.yaml
+            id: display_back
+            on_click:
+              - script.execute: open_device_menu
+        - obj:
+            x: "${screen_inset}"
+            y: 56
+            width: "${screen_content_width}"
+            height: 104
+            scrollable: false
+            styles: [panel_style, card_corners]
+            widgets:
+              - label: {x: 14, y: 10, text: Brightness}
+              - label: {id: brightness_label, align: TOP_RIGHT, x: -14, y: 10, styles: accent_style, text: ""}
+              - slider:
+                  id: brightness_slider
+                  x: 22
+                  y: 58
+                  width: 418
+                  height: 12
+                  min_value: 10
+                  max_value: 100
+                  styles: track_style
+                  indicator: {styles: primary_style}
+                  knob: {styles: primary_style, pad_all: 10}
+                  on_value:
+                    - lambda: |-
+                        glaze::display_power.set_brightness(lv_slider_get_value(id(brightness_slider)));
+                        glaze::label(id(brightness_label), std::to_string(glaze::display_power.brightness()) + "%");
+                  on_release:
+                    - lambda: glaze::display_power.save();
+        - label: {x: 20, y: 182, text: Turn screen off after}
+        - dropdown:
+            id: timeout_select
+            x: "${screen_inset}"
+            y: 215
+            width: "${screen_content_width}"
+            height: 48
+            styles: key_style
+            pad_left: 12
+            dir: TOP
+            options: ["30s", "1m", "2m", "5m", "10m"]
+            dropdown_list: !include dropdown-list.yaml
+            on_value:
+              - lambda: glaze::display_power.set_timeout(lv_dropdown_get_selected(id(timeout_select)->obj));

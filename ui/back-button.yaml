@@ -1,0 +1,9 @@
+align: TOP_LEFT
+x: "${screen_inset}"
+y: "${screen_inset}"
+width: 44
+height: 44
+styles: key_style
+border_width: 0
+widgets:
+  - label: {align: CENTER, styles: accent_style, text_font: montserrat_20, text: "\uF053"}  # LV_SYMBOL_LEFT
