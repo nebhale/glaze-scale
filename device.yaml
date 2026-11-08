@@ -131,31 +131,12 @@ script:
       ssid_value: string
       password_value: string
     then:
-      - if:
-          condition:
-            lambda: return id(studio_wifi).is_connected() && id(connected_ssid) == ssid_value;
-          then:
-            - script.execute: {id: wifi_result, success: true}
-            - script.stop: connect_wifi
-      - lambda: |-
-          // Try the new station in RAM. Keep the last working credentials in flash.
-          wifi::WiFiAP candidate;
-          candidate.set_ssid(ssid_value);
-          candidate.set_password(password_value);
-          id(studio_wifi).set_sta(candidate);
-          id(studio_wifi).start_connecting(candidate);
-      - wait_until:
-          condition:
-            lambda: return id(studio_wifi).is_connected() && id(connected_ssid) == ssid_value;
+      - wifi.configure:
+          ssid: !lambda return ssid_value;
+          password: !lambda return password_value;
+          save: true
           timeout: 30s
-      - lambda: |-
-          const bool joined = id(studio_wifi).is_connected() && id(connected_ssid) == ssid_value;
-          if (joined) {
-            id(studio_wifi).save_wifi_sta(ssid_value, password_value);
-          } else {
-            // Start like a cold boot so ESPHome reloads its user-entered credentials.
-            id(studio_wifi).disable();
-            id(studio_wifi).clear_sta();
-            id(studio_wifi).enable();
-          }
-          id(wifi_result).execute(joined);
+          on_connect:
+            - script.execute: {id: wifi_result, success: true}
+          on_error:
+            - script.execute: {id: wifi_result, success: false}
