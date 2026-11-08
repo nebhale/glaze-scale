@@ -1,0 +1,32 @@
+name: Bug report
+description: Report a reproducible scale problem
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Scale and ESPHome versions
+      description: Find both under Settings → System.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Simulator or board, connected peripherals, and Glaze Manager version.
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or screenshot
+      description: Remove Wi-Fi passwords, service tokens, and private URLs.

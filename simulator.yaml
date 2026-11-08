@@ -9,7 +9,8 @@ packages:
   studio: !include studio.yaml
 
 preferences:
-  flash_write_interval: 0s
+  # The host backend rewrites a file on every sync, even with no changes.
+  flash_write_interval: 500ms
 
 display:
   - id: !extend panel

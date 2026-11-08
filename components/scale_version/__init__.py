@@ -21,4 +21,6 @@ async def to_code(config):
         )
         if result.returncode == 0:
             version = result.stdout.strip()
+    elif (root / "VERSION").is_file():
+        version = (root / "VERSION").read_text(encoding="utf-8").strip()
     cg.add_define("GLAZE_SCALE_VERSION", version)
