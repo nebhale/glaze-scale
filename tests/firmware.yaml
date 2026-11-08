@@ -10,3 +10,5 @@ packages:
 wifi:
   ap:
     password: test-setup-password
+  ssid: test-network
+  password: test-network-password
