@@ -115,8 +115,14 @@ password. Run `make firmware` to build or `esphome run scale.yaml --device
 the device IP. `make check-firmware` cross-compiles the same target with a
 reserved test hostname and example credentials.
 
-From the weighing screen, open **Settings → Connection** to join Wi-Fi. After a minute without a network the device also offers the
-password-protected **Glaze Scale Setup** hotspot. **Settings → Scale** captures the
+On first boot, open **Settings → Connection**, select the studio network, and
+enter its password. The scale saves the network after connecting. It uses the
+last saved network after a restart or OTA update. A failed or interrupted
+touchscreen connection attempt keeps the previously saved credentials.
+
+ESPHome opens the password-protected `glaze-scale` hotspot on first boot.
+With a saved network, it opens after 90 seconds without a connection.
+**Settings → Scale** captures the
 empty platform, then asks for a steady reference mass in grams. The 2 kg cell needs physical
 qualification: check zero and known masses across its range, repeat after a
 power cycle, and verify readings to ±1 g before studio use.

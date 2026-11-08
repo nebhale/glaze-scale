@@ -4,6 +4,9 @@ substitutions:
   access_client_id: test-id
   access_client_secret: test-secret
   ota_password: test-ota-password
-  fallback_password: test-setup-password
 packages:
   firmware: !include ../device.yaml
+
+wifi:
+  ap:
+    password: test-setup-password
