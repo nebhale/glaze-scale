@@ -25,6 +25,7 @@ captive_portal:
 
 ota:
   - platform: esphome
+    id: glaze_scale_ota
     password: ${ota_password}
 
 globals:

@@ -4,3 +4,9 @@ packages:
 api:
   # The scale also runs at the studio, away from Home Assistant.
   reboot_timeout: 0s
+
+ota:
+  - platform: esphome
+    id: !extend glaze_scale_ota
+    password: !remove
+    encryption:
