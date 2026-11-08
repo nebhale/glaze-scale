@@ -1,0 +1,76 @@
+name: Verify
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        default: ''
+permissions:
+  contents: read
+jobs:
+  simulator:
+    name: Simulator
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: nebhale/glaze-manager
+          ref: a352b567010b17b7139046448fb5eac10944ec40 # v1.5.0
+          path: manager-under-test
+          persist-credentials: false
+      - uses: ./.github/actions/setup-esphome
+      - name: Install simulator dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsdl2-dev libssl-dev ninja-build g++
+          uv sync --project manager-under-test --locked
+      - name: Exercise touchscreen and inventory workflows
+        env:
+          GLAZE_MANAGER_DIR: ${{ github.workspace }}/manager-under-test
+        run: |
+          esphome config review.yaml > /dev/null
+          make test-touch test-studio
+  firmware:
+    name: Firmware and release package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup-esphome
+      - name: Package and verify tagged source
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [[ -z "$RELEASE_TAG" ]]; then
+            RELEASE_TAG="v0.0.0-ci.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+            git tag "$RELEASE_TAG" HEAD
+          fi
+          scripts/package-release "$RELEASE_TAG" "$RUNNER_TEMP/assets"
+          cd "$RUNNER_TEMP/assets"
+          sha256sum --check SHA256SUMS
+          mkdir "$RUNNER_TEMP/release-source"
+          tar xzf "glaze-scale-$RELEASE_TAG.tar.gz" --strip-components=1 -C "$RUNNER_TEMP/release-source"
+          test "$(cat "$RUNNER_TEMP/release-source/VERSION")" = "$RELEASE_TAG"
+      - name: Compile studio and bench firmware from the source package
+        run: |
+          cd "$RUNNER_TEMP/release-source"
+          make check-firmware bench
+          grep -Fx "#define GLAZE_SCALE_VERSION \"$(cat VERSION)\"" tests/.esphome/build/glaze-scale/src/esphome/core/defines.h
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: inputs.release_tag != ''
+        with:
+          name: release-source
+          path: ${{ runner.temp }}/assets/
+          if-no-files-found: error
+          retention-days: 7

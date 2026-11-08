@@ -1,10 +1,11 @@
 ESPHOME ?= esphome
+ESPHOME_VERSION := $(patsubst esphome==%,%,$(filter esphome==%,$(shell cat requirements.txt)))
 GLAZE_MANAGER_DIR ?= ../glaze-manager
 MANAGER_PYTHON ?= $(GLAZE_MANAGER_DIR)/.venv/bin/python
 
 .PHONY: sim check-version
 check-version:
-	@test "$$($(ESPHOME) version)" = "Version: 2026.10.2" || { echo 'Install the ESPHome version in requirements.txt'; exit 1; }
+	@test "$$($(ESPHOME) version)" = "Version: $(ESPHOME_VERSION)" || { echo 'Install the ESPHome version in requirements.txt'; exit 1; }
 
 sim: check-version
 	$(ESPHOME) compile simulator.yaml

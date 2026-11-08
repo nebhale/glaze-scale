@@ -1,5 +1,7 @@
 # Glaze Scale
 
+[![Verify](https://github.com/nebhale/glaze-scale/actions/workflows/ci.yaml/badge.svg)](https://github.com/nebhale/glaze-scale/actions/workflows/ci.yaml)
+
 ESPHome touchscreen scale for Glaze Manager. The simulator and WT32-SC01 Plus
 firmware share the **Glaze Manager Lilac** theme (option 4, purple Ardoise),
 including its Montserrat type, gradient panels, and 480×320 layout.
@@ -132,3 +134,24 @@ The build targets the 16 MB, quad-PSRAM Plus board and separate I²C buses for
 touch and the external scale peripherals. Check the board marking and wire
 by signal using the [SpoolmanScale wiring guide](https://niko11111.github.io/SpoolmanScale-Docs/build/wiring/).
 Remote service access is described in [Operations](docs/operations.md).
+
+## Releases
+
+Publish a GitHub Release from a tag such as `v1.0.0` or `v1.0.0-rc.1`. Mark a
+release candidate as a prerelease. Use GitHub’s generated notes to summarize
+the changes since the previous tag, including hardware checks and any change
+to the compatible Glaze Manager version.
+
+The release workflow repeats the simulator tests and builds both the bench
+and studio firmware. It attaches the tested `glaze-scale-<tag>.tar.gz` and
+`SHA256SUMS` to the release. Download both and run `shasum -a 256 -c SHA256SUMS`
+before extracting. The archive includes its tag for Settings → System when
+building outside Git. Build the studio image locally with your own
+`secrets.yaml`. The bench target can be built and flashed directly over USB.
+
+## License
+
+Glaze Scale is licensed under [Apache 2.0](LICENSE). The adapted palettes
+retain their [MIT license](ui/palette-LICENSE.txt). Bodoni Moda and Jersey 10
+retain their respective [Bodoni Moda](ui/fonts/BodoniModa-LICENSE.txt) and
+[Jersey 10](ui/fonts/Jersey10-LICENSE.txt) font licenses.
