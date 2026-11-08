@@ -22,6 +22,7 @@
           setenv("ESPHOME_PREFDIR", dir.c_str(), 1);
           if (lv_screen_active() != id(settings_editor)->obj || strcmp(lv_label_get_text(id(settings_prompt)), "Could not save. Retry.") ||
               glaze::platform_calibration.zero != 10 || glaze::platform_calibration.counts_per_gram != 1) exit(161);
+          glaze::display_power.set_timeout(4);  // Leave an ordinary preference queued.
           lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
           if (lv_screen_active() != id(device_menu)->obj || strcmp(lv_label_get_text(id(calibration_status)), "Calibration saved")) exit(162);
           std::_Exit(0);
@@ -30,7 +31,8 @@
       lambda: return std::string(getenv("GLAZE_TEST_CALIBRATION")) == "tare";
     then:
       - lambda: |-
-          if (glaze::platform_calibration.zero != 20 || glaze::platform_calibration.counts_per_gram != 2) exit(163);
+          if (glaze::platform_calibration.zero != 20 || glaze::platform_calibration.counts_per_gram != 2 ||
+              glaze::display_power.timeout_option() != 2) exit(163);
           id(simulated_load) = 320;
       - delay: 1800ms
       - lambda: |-
@@ -41,10 +43,12 @@
           setenv("ESPHOME_PREFDIR", dir.c_str(), 1);
           if (glaze::platform_calibration.zero != 20 || strcmp(lv_label_get_text(id(amount)), "150 g") ||
               !strstr(lv_label_get_text(id(condition_label)), "Could not save tare")) exit(165);
+          glaze::display_power.set_timeout(4);
           lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
           std::_Exit(0);
 - lambda: |-
-    if (glaze::platform_calibration.zero != 320 || glaze::platform_calibration.counts_per_gram != 2) exit(166);
+    if (glaze::platform_calibration.zero != 320 || glaze::platform_calibration.counts_per_gram != 2 ||
+        glaze::display_power.timeout_option() != 2) exit(166);
     id(simulated_load) = 520;
 - delay: 1800ms
 - lambda: |-
