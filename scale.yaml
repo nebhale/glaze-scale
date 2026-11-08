@@ -10,5 +10,3 @@ packages:
 wifi:
   ap:
     password: !secret fallback_password
-    ssid: Glaze Scale Setup
-    ap_timeout: 1min

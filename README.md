@@ -120,8 +120,9 @@ enter its password. The scale saves the network after connecting. It uses the
 last saved network after a restart or OTA update. A failed or interrupted
 touchscreen connection attempt keeps the previously saved credentials.
 
-The password-protected **Glaze Scale Setup** hotspot is available on first
-boot and after a minute when the saved network is unreachable. **Settings → Scale** captures the
+ESPHome opens the password-protected `glaze-scale` hotspot on first boot.
+With a saved network, it opens after 90 seconds without a connection.
+**Settings → Scale** captures the
 empty platform, then asks for a steady reference mass in grams. The 2 kg cell needs physical
 qualification: check zero and known masses across its range, repeat after a
 power cycle, and verify readings to ±1 g before studio use.
