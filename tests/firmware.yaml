@@ -12,5 +12,3 @@ wifi:
     password: test-setup-password
     ssid: Glaze Scale Setup
     ap_timeout: 1min
-  ssid: test-network
-  password: test-network-password

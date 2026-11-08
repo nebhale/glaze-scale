@@ -109,18 +109,19 @@ The palette license and the Bodoni Moda and Jersey 10 font licenses are in `ui/`
 ## Studio firmware
 
 Copy `secrets.example.yaml` to `secrets.yaml` and set the HTTPS origin,
-Cloudflare Access service-token pair, local OTA password, fallback hotspot
-password, and default Wi-Fi credentials. Run `make firmware` to build or
-`esphome run scale.yaml --device <USB-port>` to install over USB. For subsequent local OTA installs supply
+Cloudflare Access service-token pair, local OTA password, and fallback hotspot
+password. Run `make firmware` to build or `esphome run scale.yaml --device
+<USB-port>` to install over USB. For subsequent local OTA installs supply
 the device IP. `make check-firmware` cross-compiles the same target with a
 reserved test hostname and example credentials.
 
-On first boot the scale joins the Wi-Fi network configured in `wifi.ssid`.
-To switch networks, open **Settings → Connection**, select the network, and
-enter its password. The scale uses that selection after a restart. Installing
-firmware with a different configuration hash or ESPHome version can restore
-the YAML default. After a minute without a connection, the scale offers the
-password-protected **Glaze Scale Setup** hotspot. **Settings → Scale** captures the
+On first boot, open **Settings → Connection**, select the studio network, and
+enter its password. The scale saves the network after connecting. It uses the
+last saved network after a restart or OTA update. A failed or interrupted
+touchscreen connection attempt keeps the previously saved credentials.
+
+The password-protected **Glaze Scale Setup** hotspot is available on first
+boot and after a minute when the saved network is unreachable. **Settings → Scale** captures the
 empty platform, then asks for a steady reference mass in grams. The 2 kg cell needs physical
 qualification: check zero and known masses across its range, repeat after a
 power cycle, and verify readings to ±1 g before studio use.
