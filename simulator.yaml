@@ -8,10 +8,6 @@ packages:
   host_display: !include targets/host.yaml
   studio: !include studio.yaml
 
-preferences:
-  # The host backend rewrites a file on every sync, even with no changes.
-  flash_write_interval: 500ms
-
 display:
   - id: !extend panel
     snapshot_key: SDLK_F12
