@@ -20,10 +20,6 @@ wifi:
   on_disconnect:
     - lambda: |-
         id(connected_ssid).clear();
-  ap:
-    ssid: Glaze Scale Setup
-    password: ${fallback_password}
-    ap_timeout: 1min
 
 captive_portal:
 
