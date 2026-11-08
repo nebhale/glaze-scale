@@ -1,0 +1,3 @@
+# Keep ESPHome's default chroma color explicit. Its config printer treats a
+# numeric transparency_key as a credential because the name ends in _key.
+transparency_key: !lambda return lv_color_make(0, 4, 0);
