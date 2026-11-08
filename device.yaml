@@ -6,9 +6,6 @@ packages:
   hardware: !include targets/wt32-sc01-plus.yaml
   studio: !include studio.yaml
 
-preferences:
-  flash_write_interval: 1ms
-
 wifi:
   id: studio_wifi
   reboot_timeout: 0s
