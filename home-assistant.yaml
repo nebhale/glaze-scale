@@ -1,0 +1,6 @@
+packages:
+  firmware: !include device.yaml
+
+api:
+  # The scale also runs at the studio, away from Home Assistant.
+  reboot_timeout: 0s
