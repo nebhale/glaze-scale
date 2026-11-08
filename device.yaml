@@ -25,12 +25,6 @@ ota:
     id: glaze_scale_ota
     password: ${ota_password}
 
-globals:
-  - id: load_calibration
-    type: std::array<float, 2>
-    restore_value: true
-    initial_value: '{0, 0}'
-
 light:
   - id: !extend backlight
     gamma_correct: 1.0
@@ -58,8 +52,8 @@ sensor:
       then:
         - lambda: |-
             glaze::device_calibrator.sample(x, millis());
-            const auto &cal = id(load_calibration);
-            if (cal[1] != 0) glaze::station.reading.sample((x - cal[0]) / cal[1], millis());
+            const auto &cal = glaze::platform_calibration;
+            if (cal.counts_per_gram != 0) glaze::station.reading.sample((x - cal.zero) / cal.counts_per_gram, millis());
 
 script:
   - id: poll_nfc

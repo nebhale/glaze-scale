@@ -105,7 +105,7 @@ lvgl:
               border_width: 0
               text_color: 0xBDB4C3
             on_click:
-              - lambda: glaze::view.tare(id(load_calibration));
+              - lambda: glaze::view.tare();
             widgets:
               - label: {align: CENTER, text: "\uF021  Tare"}
         - button:

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "calibration.h"
 #include "palettes.h"
 #include "station.h"
 
@@ -79,10 +80,18 @@ class View {
     shown_gross_ = station.reading.gross(now);
     dirty_ = false;
   }
-  void tare(std::array<float, 2> &calibration) {
+  void tare() {
     auto mean = station.reading.settled_mean(esphome::millis());
-    if (!mean || !steady_home_reading() || calibration[1] == 0) return;
-    calibration[0] += *mean * calibration[1];
+    if (!mean || !steady_home_reading() || platform_calibration.counts_per_gram == 0) return;
+    auto next = platform_calibration;
+    next.zero += *mean * next.counts_per_gram;
+    constexpr auto save_error = "Could not save tare. Tap Tare to retry.";
+    if (!platform_calibration.save(next)) {
+      station.notice = save_error;
+      render(esphome::millis());
+      return;
+    }
+    if (station.notice == save_error) station.notice.clear();
     station.platform_tared();
     render(esphome::millis());
   }

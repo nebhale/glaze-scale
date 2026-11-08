@@ -155,7 +155,10 @@ script:
               glaze::label(id(settings_prompt), "Use a steady weight, 1 to 2000 g");
               return;
             }
-            id(load_calibration) = {cal.zero, cal.counts_per_gram};
+            if (!glaze::platform_calibration.save(cal)) {
+              glaze::label(id(settings_prompt), "Could not save. Retry.");
+              return;
+            }
             glaze::view.needs_calibration = false;
             glaze::station.reading.reset();
             id(open_device_menu).execute();

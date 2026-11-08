@@ -1,8 +1,11 @@
 #pragma once
 
+#include "storage_slot.h"
+#include "esphome/core/preferences.h"
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstring>
 #include <optional>
 #include <stdint.h>
 
@@ -12,7 +15,44 @@ namespace glaze {
 struct Calibration {
   float zero = 0;
   float counts_per_gram = 0;
+
+  bool restore() {
+    std::string bytes;
+    if (!slot_.access(bytes, false)) return false;
+    std::array<float, 2> values;
+    if (bytes.empty()) {
+      // The previous restoring global used ESPHome's globals prefix XOR the
+      // name hash of "load_calibration". A fresh device keeps its initial value.
+      constexpr uint32_t old_key = 1944399030U ^ 2826005165U;
+      if (!esphome::global_preferences->load_from_key(old_key, reinterpret_cast<uint8_t *>(values.data()), sizeof(values)))
+        return true;
+    } else {
+      if (bytes.size() != sizeof(values)) return false;
+      std::memcpy(values.data(), bytes.data(), sizeof(values));
+    }
+    if (!std::isfinite(values[0]) || !std::isfinite(values[1])) return false;
+    *this = {values[0], values[1]};
+    return true;
+  }
+
+  bool save(const Calibration &next) {
+    if (!std::isfinite(next.zero) || !std::isfinite(next.counts_per_gram) || next.counts_per_gram == 0) return false;
+    const std::array<float, 2> values{next.zero, next.counts_per_gram};
+    std::string bytes(reinterpret_cast<const char *>(values.data()), sizeof(values));
+    if (!slot_.access(bytes, true)) return false;
+    *this = next;
+    return true;
+  }
+
+ private:
+  static constexpr StorageSlot slot_{"calibration_v1", ".calibration"};
 };
+
+#ifdef USE_HOST
+inline Calibration platform_calibration{0, 1};  // The simulator starts with one count per gram.
+#else
+inline Calibration platform_calibration;
+#endif
 
 class Calibrator {
  public:
