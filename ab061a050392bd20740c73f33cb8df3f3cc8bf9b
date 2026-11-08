@@ -1,0 +1,27 @@
+README.md
+  s_bf5d8793b3bf4a::t_580a3bcfcc1930 112-113,118-123
+device.yaml
+  s_bf5d8793b3bf4a::t_039016efd3df36 134-137,139-142
+scale.yaml
+  s_bf5d8793b3bf4a::t_838cb2030339c1 13-14
+secrets.example.yaml
+  s_bf5d8793b3bf4a::t_ff4b8487c8de21 7-8
+tests/firmware.yaml
+  s_bf5d8793b3bf4a::t_de14deed6b5d5a 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ab061a050392bd20740c73f33cb8df3f3cc8bf9b",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}

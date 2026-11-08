@@ -1,0 +1,19 @@
+README.md
+  s_bf5d8793b3bf4a::t_e8a72574f9ccf6 123-125
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "58b5670d227e8253e2c9934c5f91749e1a97c8c4",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
