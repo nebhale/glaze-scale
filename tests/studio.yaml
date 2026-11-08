@@ -163,7 +163,8 @@ esphome:
       - lambda: |-
           if (glaze::station.reading.gross(millis()) != 0 || strcmp(lv_label_get_text(id(amount)), "0 g") ||
               lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(78);
-          exit(0);
+          // Flush preferences through the device shutdown path before the harness relaunches the process.
+          App.safe_reboot();
 
 script:
   - id: tap_screen
