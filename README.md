@@ -35,7 +35,7 @@ Keep screen regions at fixed heights as the scale changes state. The main
 screen reserves space for jar identity, weight, stock level, and feedback so
 each appears in the same place during selection, weighing, saving, and removal.
 
-**Tare** sets the persistent platform zero once the reading settles. **Save**
+**Tare** commits the platform zero to flash once the reading settles. **Save**
 requires a settled weight and a selected jar. Choose a jar in the dropdown or
 place a jar with a known NFC tag on the scale to select it automatically. You
 can choose a jar before placing it on the platform. After you lift it off, the
@@ -123,7 +123,8 @@ return the scale to the configured network. After 90 seconds without a
 connection, the scale offers its password-protected `glaze-scale` hotspot.
 
 **Settings → Scale** captures the
-empty platform, then asks for a steady reference mass in grams. The 2 kg cell needs physical
+empty platform, then asks for a steady reference mass in grams. Once the scale
+shows **Calibration saved**, you can unplug it immediately. The 2 kg cell needs physical
 qualification: check zero and known masses across its range, repeat after a
 power cycle, and verify readings to ±1 g before studio use.
 

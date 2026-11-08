@@ -51,8 +51,8 @@ class DisplayPower {
   }
 
   void save() {
-    if (!preference_.save(&settings_) || !esphome::global_preferences->sync())
-      ESP_LOGW("display", "Could not store display settings");
+    if (!preference_.save(&settings_))
+      ESP_LOGW("display", "Could not queue display settings for saving");
   }
 
   void activity() {

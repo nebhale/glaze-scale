@@ -25,6 +25,7 @@ esphome:
     - studio/manager.h
     - studio/reading.h
     - studio/display_power.h
+    - studio/storage_slot.h
     - studio/calibration.h
     - studio/pending_save.h
     - studio/station.h
@@ -34,7 +35,11 @@ esphome:
     then:
       - lambda: |-
           lv_obj_remove_flag(id(nfc_indicator), LV_OBJ_FLAG_CLICKABLE);
-          glaze::view.needs_calibration = id(load_calibration)[1] == 0;
+          if (!glaze::platform_calibration.restore()) {
+            glaze::platform_calibration = {};
+            ESP_LOGE("calibration", "Cannot read calibration");
+          }
+          glaze::view.needs_calibration = glaze::platform_calibration.counts_per_gram == 0;
           glaze::station.device = App.get_name().c_str();
           glaze::station.restore_save();
           glaze::apply_palette(glaze::production_palette, id(page_style), id(panel_style), id(muted_style),
