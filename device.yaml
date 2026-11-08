@@ -7,7 +7,7 @@ packages:
   studio: !include studio.yaml
 
 preferences:
-  flash_write_interval: 0s
+  flash_write_interval: 1ms
 
 wifi:
   id: studio_wifi

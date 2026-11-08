@@ -5,6 +5,7 @@ substitutions:
   screen_content_width: "464"
 
 lvgl:
+  <<: !include lvgl-defaults.yaml
   theme:
     dark_mode: true
     obj:

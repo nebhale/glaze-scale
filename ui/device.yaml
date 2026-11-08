@@ -94,22 +94,22 @@ script:
           glaze::label(id(wifi_status), success ? "Wi-Fi connected" : "Failed. Check password.");
   - id: open_setting_field
     parameters:
-      password: bool
+      is_password_field: bool
     then:
       - lambda: |-
-          glaze::visible(id(reference_title), !password);
-          lv_obj_set_y(id(settings_prompt), password ? 8 : 50);
-          lv_obj_set_width(id(settings_prompt), password ? ${screen_content_width} : 344);
-          lv_obj_set_pos(id(settings_value), password ? ${screen_inset} : 360, password ? 32 : 37);
-          lv_obj_set_width(id(settings_value), password ? ${screen_content_width} : 112);
-          glaze::label(id(settings_prompt), password ? "Password for " + id(chosen_ssid) : "Weight in grams");
-          glaze::label(id(settings_submit_label), password ? "Connect" : "Calibrate");
+          glaze::visible(id(reference_title), !is_password_field);
+          lv_obj_set_y(id(settings_prompt), is_password_field ? 8 : 50);
+          lv_obj_set_width(id(settings_prompt), is_password_field ? ${screen_content_width} : 344);
+          lv_obj_set_pos(id(settings_value), is_password_field ? ${screen_inset} : 360, is_password_field ? 32 : 37);
+          lv_obj_set_width(id(settings_value), is_password_field ? ${screen_content_width} : 112);
+          glaze::label(id(settings_prompt), is_password_field ? "Password for " + id(chosen_ssid) : "Weight in grams");
+          glaze::label(id(settings_submit_label), is_password_field ? "Connect" : "Calibrate");
           lv_textarea_set_text(id(settings_value), "");
-          lv_textarea_set_password_mode(id(settings_value), password);
-          lv_textarea_set_accepted_chars_static(id(settings_value), password ? nullptr : "0123456789");
-          lv_textarea_set_max_length(id(settings_value), password ? 64 : 4);
+          lv_textarea_set_password_mode(id(settings_value), is_password_field);
+          lv_textarea_set_accepted_chars_static(id(settings_value), is_password_field ? nullptr : "0123456789");
+          lv_textarea_set_max_length(id(settings_value), is_password_field ? 64 : 4);
           auto *keys = id(settings_keys)->obj;
-          if (password) {
+          if (is_password_field) {
             lv_textarea_set_password_show_time(id(settings_value), 0);
             lv_keyboard_set_mode(keys, LV_KEYBOARD_MODE_TEXT_LOWER);
           } else {

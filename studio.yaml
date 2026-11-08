@@ -6,12 +6,14 @@ scale_version:
 
 image:
   # Inventory's JarIcon from the Glaze Manager navigation, at status-bar size.
-  - file: ui/inventory-jar.png
+  - platform: file
+    file: ui/inventory-jar.png
     id: inventory_jar
     type: RGB
     transparency: alpha_channel
 
-  - file: ui/nfc.svg
+  - platform: file
+    file: ui/nfc.svg
     id: nfc_waves
     type: RGB
     transparency: alpha_channel

@@ -2,6 +2,7 @@ substitutions:
   <<: !include corner-radii.yaml
 
 lvgl:
+  <<: !include lvgl-defaults.yaml
   theme:
     button: {radius: "${control_radius}"}
   pages:

@@ -36,7 +36,7 @@ lvgl:
       styles: page_style
       widgets:
         - label: {x: "${screen_inset}", y: 8, styles: accent_style, text: New jar}
-        - label: {align: TOP_RIGHT, x: "-${screen_inset}", y: 8, styles: muted_style, text: "$18.50"}
+        - label: {align: TOP_RIGHT, x: "-${screen_inset}", y: 8, styles: muted_style, text: !literal "$18.50"}
         - label: {x: "${screen_inset}", y: 32, text_font: montserrat_20, text: "Seafoam over Blue Rutile"}
         - label: {x: "${screen_inset}", y: 60, styles: muted_style, text: "AMACO   /   Cone 06   /   Pint jar"}
         - label: {x: "${screen_inset}", y: 101, text: Location}
