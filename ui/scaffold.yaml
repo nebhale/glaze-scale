@@ -1,0 +1,24 @@
+lvgl:
+  pages:
+    - id: scaffold
+      widgets:
+        - label:
+            align: CENTER
+            y: -38
+            text: Glaze Scale
+            text_font: montserrat_24
+        - button:
+            align: CENTER
+            y: 28
+            width: 168
+            height: 54
+            on_click:
+              - lvgl.label.update:
+                  id: tap_label
+                  text: Touch received
+              - logger.log: Touch received
+            widgets:
+              - label:
+                  id: tap_label
+                  align: CENTER
+                  text: Test touch

@@ -1,0 +1,32 @@
+packages:
+  simulator: !include ../simulator.yaml
+
+esphome:
+  name: glaze-touch-test
+  on_boot:
+    priority: -100
+    then:
+      - delay: 1200ms
+      - lambda: |-
+          if (strcmp(lv_label_get_text(id(tap_label)), "Test touch") != 0)
+            exit(1);
+          SDL_Event down{};
+          down.type = SDL_MOUSEBUTTONDOWN;
+          down.button.windowID = SDL_GetWindowID(SDL_GetKeyboardFocus());
+          down.button.button = SDL_BUTTON_LEFT;
+          down.button.state = SDL_PRESSED;
+          down.button.x = 240;
+          down.button.y = 188;
+          SDL_PushEvent(&down);
+      - delay: 200ms
+      - lambda: |-
+          SDL_Event up{};
+          up.type = SDL_MOUSEBUTTONUP;
+          up.button.windowID = SDL_GetWindowID(SDL_GetKeyboardFocus());
+          up.button.button = SDL_BUTTON_LEFT;
+          up.button.x = 240;
+          up.button.y = 188;
+          SDL_PushEvent(&up);
+      - delay: 200ms
+      - lambda: |-
+          exit(strcmp(lv_label_get_text(id(tap_label)), "Touch received") == 0 ? 0 : 1);

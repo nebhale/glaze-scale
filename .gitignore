@@ -1,0 +1,5 @@
+.esphome/
+**/.esphome/
+secrets.yaml
+.venv/
+.DS_Store

@@ -1,0 +1,15 @@
+host:
+
+logger:
+
+display:
+  - platform: sdl
+    id: panel
+    dimensions: 480x320
+    auto_clear_enabled: false
+    update_interval: never
+
+touchscreen:
+  - platform: sdl
+    id: touch
+    display: panel
