@@ -1,0 +1,39 @@
+docs/operations.md
+  s_bf5d8793b3bf4a::t_d1a8c26cdd4702 7-8
+  s_bf5d8793b3bf4a::t_7de115a1f64323 1-6,9-34
+README.md
+  s_bf5d8793b3bf4a::t_d1a8c26cdd4702 3-5
+  s_bf5d8793b3bf4a::t_535b37ee97ea46 1-2,6-15
+tests/touch.yaml
+  s_bf5d8793b3bf4a::t_41a3d2aab15801 2
+  s_bf5d8793b3bf4a::t_fa2fac472ff4c4 1,3-32
+Makefile
+  s_bf5d8793b3bf4a::t_d2e5e79a495466 8-9
+  s_bf5d8793b3bf4a::t_1e12870691b26b 1-7,10-12
+.gitignore
+  s_bf5d8793b3bf4a::t_078aae562d805f 1-5
+requirements.txt
+  s_bf5d8793b3bf4a::t_8eab6944414559 1
+simulator.yaml
+  s_bf5d8793b3bf4a::t_cbbef7fec3854b 1-7
+targets/host.yaml
+  s_bf5d8793b3bf4a::t_ddf0b4f5d9646d 1-15
+ui/scaffold.yaml
+  s_bf5d8793b3bf4a::t_f8e6f3d40476d5 1-24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "558fe9d0e9ffa2cad43bef5687ba218921f68cf4",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
