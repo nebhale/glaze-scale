@@ -134,7 +134,13 @@
 - lambda: |-
     if (glaze::station.state != glaze::State::Saved || glaze::station.saved_gross != 350) exit(74);
     id(simulated_load) = 200;
-- delay: 1s
+- wait_until:
+    condition:
+      lambda: |-
+        const auto now = millis();
+        return glaze::station.reading.gross(now) == 0 && glaze::station.reading.stable(now) &&
+               glaze::station.state == glaze::State::Idle && !lv_obj_has_state(id(home_tare), LV_STATE_DISABLED);
+    timeout: 5s
 - lambda: |-
     if (glaze::station.selected() || glaze::station.state != glaze::State::Idle ||
         *lv_label_get_text(id(jar_title)) || *lv_label_get_text(id(identity)) || strcmp(lv_label_get_text(id(amount)), "0 g") ||
