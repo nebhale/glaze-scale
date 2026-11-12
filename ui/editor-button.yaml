@@ -1,0 +1,7 @@
+x: ${left}
+y: 88
+width: ${width}
+height: 44
+styles: ${style}
+widgets:
+  - label: {align: CENTER, text: "${caption}"}

@@ -23,7 +23,7 @@
                 glaze::station.location = "Kiln room";
                 glaze::station.cost = "15.50";
             - delay: 200ms
-            - lambda: lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+            - lambda: lv_obj_send_event(id(new_jar_create), LV_EVENT_CLICKED, nullptr);
           else:
             - lambda: lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
       - delay: 450ms

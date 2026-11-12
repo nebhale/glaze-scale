@@ -12,10 +12,15 @@ struct JarHeading {
   lv_obj_t *title, *number, *maker;
 };
 
+struct NewForm {
+  lv_obj_t *page, *create, *notice;
+};
+
 struct Widgets {
   lv_obj_t *home, *menu, *edit, *wifi_indicator, *wifi, *wifi_warning, *service, *service_icon, *service_warning, *manager_dialog;
   lv_obj_t *amount, *basis, *status, *bar;
   lv_obj_t *tare_button, *save_button, *jar_picker;
+  NewForm new_jar, new_glaze, new_manufacturer, new_container;
   lv_obj_t *menu_title, *body, *menu_action, *action_label, *edit_title, *edit_context, *edit_caption, *entry, *suggestions, *keys;
   lv_obj_t *link_card;
   JarHeading home_heading, link_heading;
@@ -39,14 +44,7 @@ class View {
 
   void attach(Widgets widgets) {
     w = widgets;
-    lv_obj_set_flex_flow(w.suggestions, LV_FLEX_FLOW_ROW);
-    lv_obj_set_style_pad_column(w.suggestions, 8, 0);
     lv_dropdown_set_text_static(w.jar_picker, "");
-    lv_obj_add_event_cb(w.keys, [](lv_event_t *event) {
-      auto *self = static_cast<View *>(lv_event_get_user_data(event));
-      if (lv_event_get_code(event) == LV_EVENT_READY) self->finish_edit();
-      if (lv_event_get_code(event) == LV_EVENT_CANCEL) self->back();
-    }, LV_EVENT_ALL, this);
   }
   void update_connections(bool wifi_connected) {
     if (!w.home) return;
@@ -63,16 +61,21 @@ class View {
   }
   void render(uint32_t now) {
     if (!w.home || settings_open) return;
+    const auto *form = current_form();
     bool entered = !previous_ || *previous_ != station.screen;
     if (entered) {
-      auto page = station.screen == Screen::Home ? w.home : station.screen == Screen::Edit ? w.edit : w.menu;
+      auto page = form ? form->page : station.screen == Screen::Home ? w.home : station.screen == Screen::Edit ? w.edit : w.menu;
       if (lv_screen_active() != page) lv_screen_load(page);
       previous_ = station.screen;
       dirty_ = true;
     }
-    if (station.screen == Screen::Home) home(now);
+    if (form) {
+      lv_obj_set_state(form->create, LV_STATE_DISABLED, !can_create_form(now));
+      visible(form->notice, !station.notice.empty());
+      label(form->notice, station.notice);
+    } else if (station.screen == Screen::Home) home(now);
     else if (station.screen == Screen::Edit) render_edit(entered);
-    else menu(now);
+    else menu();
     shown_jar_id_ = station.jar.id;
     shown_uid_ = station.uid;
     shown_revision_ = station.jar.revision;
@@ -127,6 +130,8 @@ class View {
     else if (station.screen == Screen::Link) station.bind();
     dirty_ = true;
   }
+  void pick(List list) { if (same_session()) station.pick(list); }
+  void edit(Edit field) { if (same_session()) station.edit(field); }
   void back() { station.back(); dirty_ = true; }
   void finish_edit() {
     if (same_session()) station.entered(lv_textarea_get_text(w.entry));
@@ -146,8 +151,27 @@ class View {
   State shown_state_ = State::Idle;
   int shown_revision_ = 0, y_ = 0;
   Grams shown_gross_;
-  enum class Row { NewGlaze, GlazeName, ProductCode, Cone, Classification, ClearClassification, Manufacturer, ClearManufacturer,
-                   ProductLine, NewManufacturer, ManufacturerName, Glaze, Preset, Location, Cost, Option, ClearPreset, NewContainer, ContainerName, ContainerWeight, Reload };
+  enum class Row { Option, NewGlaze, NewContainer, NewManufacturer, ClearClassification,
+                   ClearManufacturer, ClearPreset, Reload };
+
+  const NewForm *current_form() const {
+    switch (station.screen) {
+      case Screen::Setup: return &w.new_jar;
+      case Screen::NewGlaze: return &w.new_glaze;
+      case Screen::NewManufacturer: return &w.new_manufacturer;
+      case Screen::NewContainer: return &w.new_container;
+      default: return nullptr;
+    }
+  }
+  bool can_create_form(uint32_t now) const {
+    switch (station.screen) {
+      case Screen::Setup: return station.can_create(now);
+      case Screen::NewGlaze: return station.can_edit_setup() && station.draft.ready();
+      case Screen::NewManufacturer: return !station.form_busy && station.can_edit_setup() && !station.manufacturer_name.empty();
+      case Screen::NewContainer: return !station.form_busy && station.can_edit_setup() && !station.container_name.empty();
+      default: return false;
+    }
+  }
   struct Click { View *owner; Row row; size_t index; };
   std::vector<Click> clicks_;
 
@@ -290,24 +314,17 @@ class View {
     lv_obj_update_layout(obj);
     y_ += lv_obj_get_height(obj) + 8;
   }
-  void optional_row(const char *prompt, const std::string &value, Row kind) {
-    auto *caption = row(value.empty() ? prompt : value, kind);
-    if (value.empty()) lv_obj_set_style_text_color(caption, lv_color_hex(palette_at(production_palette).muted), 0);
-  }
   lv_obj_t *form_button(lv_obj_t *parent) {
     auto *obj = lv_button_create(parent);
     lv_obj_add_style(obj, w.panel, LV_PART_MAIN);
     lv_obj_add_style(obj, w.control_corners, LV_PART_MAIN);
     return obj;
   }
-  lv_obj_t *row(const std::string &text, Row kind, size_t index = 0) {
+  void row(const std::string &text, Row kind, size_t index = 0) {
     auto *obj = form_button(w.body);
-    // Pair the six glaze fields so the whole form fits above the footer.
-    bool paired = station.screen == Screen::NewGlaze;
-    bool right = paired && clicks_.size() % 2 == 1;
-    int width = paired ? (lv_obj_get_content_width(w.body) - 8) / 2 : lv_pct(100);
-    lv_obj_set_size(obj, width, 44);
-    lv_obj_set_pos(obj, right ? width + 8 : 0, y_);
+    lv_obj_set_size(obj, lv_pct(100), 44);
+    lv_obj_set_pos(obj, 0, y_);
+    y_ += 50;
     lv_obj_set_style_pad_hor(obj, 12, LV_PART_MAIN);
     auto *caption = lv_label_create(obj);
     lv_obj_set_width(caption, lv_pct(100));
@@ -320,48 +337,25 @@ class View {
       auto *c = static_cast<Click *>(lv_event_get_user_data(event));
       c->owner->select(c->row, c->index);
     }, LV_EVENT_CLICKED, &click);
-    if (!paired || right) y_ += 50;
-    return caption;
   }
   void select(Row kind, size_t index) {
     if (!same_session()) return;
     auto &s = station;
     switch (kind) {
       case Row::NewGlaze: s.begin_glaze(); break;
-      case Row::GlazeName: s.edit(Edit::GlazeName); break;
-      case Row::ProductCode: s.edit(Edit::ProductCode); break;
-      case Row::Cone: s.pick(List::Cones); break;
-      case Row::ProductLine: s.pick(List::ProductLines); break;
-      case Row::Classification: s.pick(List::Classifications); break;
       case Row::ClearClassification: s.draft.classification = {}; s.screen = Screen::NewGlaze; break;
       case Row::ClearManufacturer: s.draft.manufacturer = {}; s.screen = Screen::NewGlaze; break;
-      case Row::Manufacturer: s.pick(List::Manufacturers); break;
       case Row::NewManufacturer: s.begin_manufacturer(); break;
-      case Row::ManufacturerName: s.edit(Edit::ManufacturerName); break;
-      case Row::Glaze: s.pick(List::Glazes); break;
-      case Row::Preset: s.pick(List::Presets); break;
-      case Row::Location: s.pick(List::Locations); break;
       case Row::NewContainer: s.begin_container(); break;
-      case Row::ContainerName: s.edit(Edit::ContainerName); break;
-      case Row::ContainerWeight: s.edit(Edit::ContainerWeight); break;
-      case Row::Cost: s.edit(Edit::Cost); break;
       case Row::Option: s.choose(index); break;
       case Row::ClearPreset: s.preset = {}; s.screen = Screen::Setup; break;
       case Row::Reload: s.pick(s.list); break;
     }
     dirty_ = true;
   }
-  void menu(uint32_t now) {
+  void menu() {
     auto &s = station;
-    if (s.screen == Screen::Setup) {
-      button(w.menu_action, w.action_label, "Create", s.can_create(now));
-    } else if (s.screen == Screen::NewGlaze) {
-      button(w.menu_action, w.action_label, "Create", s.can_edit_setup() && s.draft.ready());
-    } else if (s.screen == Screen::NewManufacturer) {
-      button(w.menu_action, w.action_label, "Create", !s.form_busy && s.can_edit_setup() && !s.manufacturer_name.empty());
-    } else if (s.screen == Screen::NewContainer) {
-      button(w.menu_action, w.action_label, "Create", !s.form_busy && s.can_edit_setup() && !s.container_name.empty());
-    } else if (s.screen == Screen::Link) button(w.menu_action, w.action_label, "Link", s.present && !s.form_busy);
+    if (s.screen == Screen::Link) button(w.menu_action, w.action_label, "Link", s.present && !s.form_busy);
     else visible(w.menu_action, false);
     const bool loading = s.catalog_loading;
     if (!dirty_ && loading == catalog_loading_) return;
@@ -370,31 +364,10 @@ class View {
     lv_obj_clean(w.body);
     clicks_.clear();
     // Event callbacks reference these entries until we rebuild the list.
-    clicks_.reserve(std::max<size_t>(6, s.options.size() + 2));
+    clicks_.reserve(s.options.size() + 2);
     y_ = 0;
     lv_obj_set_height(w.body, s.screen == Screen::Pick ? 252 : 200);
-    if (s.screen == Screen::Setup) {
-      label(w.menu_title, "New jar");
-      row(s.has_glaze() ? s.glaze.label : "Glaze", Row::Glaze);
-      optional_row("Container", s.preset.label, Row::Preset);
-      optional_row("Location", s.location, Row::Location);
-      optional_row("Cost", s.cost.empty() ? "" : "$" + s.cost, Row::Cost);
-    } else if (s.screen == Screen::NewGlaze) {
-      label(w.menu_title, "New glaze");
-      row(s.draft.name.empty() ? "Name" : s.draft.name, Row::GlazeName);
-      optional_row("Product code", s.draft.code, Row::ProductCode);
-      optional_row("Cone", s.draft.cone, Row::Cone);
-      optional_row("Classification", s.draft.classification.label, Row::Classification);
-      optional_row("Manufacturer", s.draft.manufacturer.label, Row::Manufacturer);
-      optional_row("Product line", s.draft.line, Row::ProductLine);
-    } else if (s.screen == Screen::NewManufacturer) {
-      label(w.menu_title, "New manufacturer");
-      row(s.manufacturer_name.empty() ? "Name" : s.manufacturer_name, Row::ManufacturerName);
-    } else if (s.screen == Screen::NewContainer) {
-      label(w.menu_title, "New container");
-      row(s.container_name.empty() ? "Name" : s.container_name, Row::ContainerName);
-      optional_row("Weight", s.container_weight.empty() ? "" : s.container_weight + " g", Row::ContainerWeight);
-    } else if (s.screen == Screen::Pick) {
+    if (s.screen == Screen::Pick) {
       const char *titles[] = {"Manufacturer", "Glaze", "Container", "Location", "Cone", "Product line", "Classification"};
       label(w.menu_title, titles[static_cast<int>(s.list)]);
       if (loading) line("Loading...");

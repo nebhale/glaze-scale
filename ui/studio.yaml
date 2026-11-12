@@ -199,6 +199,8 @@ lvgl:
             styles: page_style
             border_width: 0
             scroll_dir: HOR
+            layout: {type: FLEX, flex_flow: ROW, pad_column: 8}
+            widgets: []  # Suggestions are populated from the catalog.
             pad_all: 0
         - keyboard:
             id: input_keys
@@ -210,3 +212,7 @@ lvgl:
             mode: TEXT_LOWER
             textarea: edit_value
             items: {styles: key_style}
+            on_ready:
+              - lambda: glaze::view.finish_edit();
+            on_cancel:
+              - lambda: glaze::view.back();

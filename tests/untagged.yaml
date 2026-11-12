@@ -16,18 +16,68 @@
 - delay: 200ms
 - lambda: |-
     if (glaze::station.screen != glaze::Screen::Setup || glaze::station.present) exit(151);
-    lv_obj_send_event(lv_obj_get_child(id(menu_body), 0), LV_EVENT_CLICKED, nullptr);
+    if (strcmp(lv_label_get_text(id(jar_glaze_text)), "Glaze")) exit(151);
+    lv_obj_send_event(id(jar_glaze), LV_EVENT_CLICKED, nullptr);
 - delay: 400ms
-- lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), 0), LV_EVENT_CLICKED, nullptr);
+- lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), -1), LV_EVENT_CLICKED, nullptr);
 - delay: 200ms
 - lambda: |-
-    if (glaze::station.glaze.label != "Seafoam over Blue Rutile" ||
-        !lv_obj_has_state(id(menu_action), LV_STATE_DISABLED)) exit(152);
+    if (lv_screen_active() != id(new_glaze_page)->obj || !lv_obj_has_state(id(new_glaze_create), LV_STATE_DISABLED)) exit(156);
+    lv_obj_send_event(id(glaze_maker), LV_EVENT_CLICKED, nullptr);
+- delay: 400ms
+- lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), -1), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (lv_screen_active() != id(new_manufacturer_page)->obj) exit(157);
+    lv_obj_send_event(id(manufacturer_name), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    lv_textarea_set_text(id(edit_value), "Studio");
+    lv_obj_send_event(id(input_keys)->obj, LV_EVENT_READY, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(manufacturer_name_text)), "Studio") ||
+        lv_obj_has_state(id(new_manufacturer_create), LV_STATE_DISABLED)) exit(157);
+    lv_obj_send_event(id(new_manufacturer_create), LV_EVENT_CLICKED, nullptr);
+- delay: 400ms
+- lambda: |-
+    if (lv_screen_active() != id(new_glaze_page)->obj || strcmp(lv_label_get_text(id(glaze_maker_text)), "Studio")) exit(158);
+    lv_obj_send_event(id(glaze_name), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    lv_textarea_set_text(id(edit_value), "Mist Blue");
+    lv_obj_send_event(id(input_keys)->obj, LV_EVENT_READY, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(glaze_name_text)), "Mist Blue") || lv_obj_has_state(id(new_glaze_create), LV_STATE_DISABLED)) exit(158);
+    lv_obj_send_event(id(new_glaze_create), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (lv_screen_active() != id(new_jar_page)->obj || strcmp(lv_label_get_text(id(jar_glaze_text)), "Mist Blue")) exit(159);
+    lv_obj_send_event(id(jar_container), LV_EVENT_CLICKED, nullptr);
+- delay: 400ms
+- lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), -1), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (lv_screen_active() != id(new_container_page)->obj || !lv_obj_has_state(id(new_container_create), LV_STATE_DISABLED)) exit(159);
+    lv_obj_send_event(id(container_name), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    lv_textarea_set_text(id(edit_value), "Pint jar");
+    lv_obj_send_event(id(input_keys)->obj, LV_EVENT_READY, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(container_name_text)), "Pint jar") || lv_obj_has_state(id(new_container_create), LV_STATE_DISABLED)) exit(159);
+    lv_obj_send_event(id(new_container_create), LV_EVENT_CLICKED, nullptr);
+- delay: 400ms
+- lambda: |-
+    if (lv_screen_active() != id(new_jar_page)->obj || strcmp(lv_label_get_text(id(jar_container_text)), "Pint jar") ||
+        !lv_obj_has_state(id(new_jar_create), LV_STATE_DISABLED)) exit(152);
     id(simulated_load) = 1125;
 - delay: 1s
 - lambda: |-
-    if (lv_obj_has_state(id(menu_action), LV_STATE_DISABLED)) exit(153);
-    lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+    if (lv_obj_has_state(id(new_jar_create), LV_STATE_DISABLED)) exit(153);
+    lv_obj_send_event(id(new_jar_create), LV_EVENT_CLICKED, nullptr);
 - delay: 500ms
 - lambda: |-
     if (glaze::station.state != glaze::State::Saved || !glaze::station.selected() ||

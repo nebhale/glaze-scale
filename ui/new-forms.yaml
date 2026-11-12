@@ -1,0 +1,73 @@
+lvgl:
+  pages:
+    - !include
+      file: new-form.yaml
+      vars:
+        form: new_jar
+        title: New jar
+        captions: [jar_glaze_text, jar_container_text, jar_location_text, jar_cost_text]
+        fields:
+          - !include
+            file: form-field.yaml
+            vars: {field: jar_glaze, top: 0, prompt: Glaze, value: glaze.label, action: pick(glaze::List::Glazes), optional: "false"}
+          - !include
+            file: form-field.yaml
+            vars: {field: jar_container, top: 50, prompt: Container, value: preset.label, action: pick(glaze::List::Presets)}
+          - !include
+            file: form-field.yaml
+            vars: {field: jar_location, top: 100, prompt: Location, value: location, action: pick(glaze::List::Locations)}
+          - !include
+            file: form-field.yaml
+            vars: {field: jar_cost, top: 150, prompt: Cost, value: cost, action: edit(glaze::Edit::Cost), prefix: "$"}
+          - label: {id: new_jar_notice, x: 0, y: 200, width: 100%, hidden: true, text: ""}
+    - !include
+      file: new-form.yaml
+      vars:
+        form: new_glaze
+        title: New glaze
+        captions: [glaze_name_text, glaze_code_text, glaze_cone_text, glaze_class_text, glaze_maker_text, glaze_line_text]
+        fields:
+          - !include
+            file: form-field.yaml
+            vars: {field: glaze_name, top: 0, left: 0, width: 228, prompt: Name, value: draft.name, action: edit(glaze::Edit::GlazeName), optional: "false"}
+          - !include
+            file: form-field.yaml
+            vars: {field: glaze_code, top: 0, left: 236, width: 228, prompt: Product code, value: draft.code, action: edit(glaze::Edit::ProductCode)}
+          - !include
+            file: form-field.yaml
+            vars: {field: glaze_cone, top: 50, left: 0, width: 228, prompt: Cone, value: draft.cone, action: pick(glaze::List::Cones)}
+          - !include
+            file: form-field.yaml
+            vars: {field: glaze_class, top: 50, left: 236, width: 228, prompt: Classification, value: draft.classification.label, action: pick(glaze::List::Classifications)}
+          - !include
+            file: form-field.yaml
+            vars: {field: glaze_maker, top: 100, left: 0, width: 228, prompt: Manufacturer, value: draft.manufacturer.label, action: pick(glaze::List::Manufacturers)}
+          - !include
+            file: form-field.yaml
+            vars: {field: glaze_line, top: 100, left: 236, width: 228, prompt: Product line, value: draft.line, action: pick(glaze::List::ProductLines)}
+          - label: {id: new_glaze_notice, x: 0, y: 150, width: 100%, hidden: true, text: ""}
+    - !include
+      file: new-form.yaml
+      vars:
+        form: new_manufacturer
+        title: New manufacturer
+        captions: [manufacturer_name_text]
+        fields:
+          - !include
+            file: form-field.yaml
+            vars: {field: manufacturer_name, top: 0, prompt: Name, value: manufacturer_name, action: edit(glaze::Edit::ManufacturerName), optional: "false"}
+          - label: {id: new_manufacturer_notice, x: 0, y: 50, width: 100%, hidden: true, text: ""}
+    - !include
+      file: new-form.yaml
+      vars:
+        form: new_container
+        title: New container
+        captions: [container_name_text, container_weight_text]
+        fields:
+          - !include
+            file: form-field.yaml
+            vars: {field: container_name, top: 0, prompt: Name, value: container_name, action: edit(glaze::Edit::ContainerName), optional: "false"}
+          - !include
+            file: form-field.yaml
+            vars: {field: container_weight, top: 50, prompt: Weight, value: container_weight, action: edit(glaze::Edit::ContainerWeight), suffix: " g"}
+          - label: {id: new_container_notice, x: 0, y: 100, width: 100%, hidden: true, text: ""}
