@@ -14,18 +14,19 @@
     // Tapping even the first (currently connected) SSID opens an empty password prompt.
     lv_dropdown_set_selected(picker, 0);
     lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
-    if (lv_screen_active() != id(settings_editor)->obj || id(chosen_ssid) != "Studio Wi-Fi" ||
-        *lv_textarea_get_text(id(settings_value))) exit(36);
-    lv_textarea_add_text(id(settings_value), "Ab3!");
-    if (strcmp(lv_label_get_text(lv_textarea_get_label(id(settings_value))), "Ab3!")) exit(61);
-    lv_obj_send_event(id(settings_cancel), LV_EVENT_CLICKED, nullptr);
-    if (lv_screen_active() != id(networks_page)->obj || !id(chosen_ssid).empty() || *lv_textarea_get_text(id(settings_value))) exit(62);
+    if (lv_screen_active() != id(wifi_password_page)->obj || id(chosen_ssid) != "Studio Wi-Fi" ||
+        *lv_textarea_get_text(id(wifi_password))) exit(36);
+    lv_keyboard_set_mode(id(wifi_keyboard)->obj, LV_KEYBOARD_MODE_SPECIAL);
+    lv_textarea_add_text(id(wifi_password), "Ab3!");
+    if (strcmp(lv_label_get_text(lv_textarea_get_label(id(wifi_password))), "Ab3!")) exit(61);
+    lv_obj_send_event(id(wifi_cancel), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(networks_page)->obj || !id(chosen_ssid).empty() || *lv_textarea_get_text(id(wifi_password))) exit(62);
     lv_obj_send_event(id(scan_now), LV_EVENT_CLICKED, nullptr);
     lv_dropdown_set_selected(picker, 1);
     lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
-    if (id(chosen_ssid) != "Workshop") exit(63);
-    lv_textarea_set_text(id(settings_value), "wrong");
-    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+    if (id(chosen_ssid) != "Workshop" || lv_keyboard_get_mode(id(wifi_keyboard)->obj) != LV_KEYBOARD_MODE_TEXT_LOWER) exit(63);
+    lv_textarea_set_text(id(wifi_password), "wrong");
+    lv_obj_send_event(id(wifi_connect), LV_EVENT_CLICKED, nullptr);
 - delay: 550ms
 - lambda: |-
     if (id(connected_ssid) != "Studio Wi-Fi" || strstr(lv_label_get_text(id(wifi_status)), "Failed") == nullptr) exit(37);
@@ -38,24 +39,38 @@
     if (lv_obj_has_state(picker, LV_STATE_DISABLED) || !id(chosen_ssid).empty()) exit(65);
     lv_dropdown_set_selected(picker, 1);
     lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
-    lv_textarea_set_text(id(settings_value), "studio");
-    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+    lv_textarea_set_text(id(wifi_password), "studio");
+    lv_obj_send_event(id(wifi_connect), LV_EVENT_CLICKED, nullptr);
 - delay: 550ms
 - lambda: |-
-    if (id(connected_ssid) != "Workshop" || *lv_textarea_get_text(id(settings_value))) exit(38);
+    if (id(connected_ssid) != "Workshop" || *lv_textarea_get_text(id(wifi_password))) exit(38);
     lv_obj_send_event(id(wifi_key), LV_EVENT_CLICKED, nullptr);
     if (!id(chosen_ssid).empty() || strcmp(lv_dropdown_get_text(id(network_list)->obj), "Choose a network")) exit(66);
     id(open_device_menu).execute();
     lv_obj_send_event(id(calibrate_key), LV_EVENT_CLICKED, nullptr);
     lv_obj_send_event(id(capture_empty_key), LV_EVENT_CLICKED, nullptr);
-    lv_textarea_set_text(id(settings_value), "0");
-    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
-    if (lv_screen_active() != id(settings_editor)->obj) exit(39);
+- script.execute: {id: tap_screen, x: 160, y: 292}
+- script.wait: tap_screen
+- lambda: |-
+    if (strcmp(lv_textarea_get_text(id(reference_grams)), "0")) exit(39);
+    lv_obj_send_event(id(reference_calibrate), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(reference_weight_page)->obj) exit(39);
     id(simulated_load) = 200;
 - delay: 1200ms
 - lambda: |-
-    lv_textarea_set_text(id(settings_value), "100");
-    lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+    if (!strstr(lv_label_get_text(id(reference_prompt)), "steady weight")) exit(39);
+- script.execute: {id: tap_screen, x: 395, y: 292}
+- script.wait: tap_screen
+- script.execute: {id: tap_screen, x: 80, y: 164}
+- script.wait: tap_screen
+- repeat:
+    count: 2
+    then:
+      - script.execute: {id: tap_screen, x: 160, y: 292}
+      - script.wait: tap_screen
+- lambda: |-
+    if (strcmp(lv_textarea_get_text(id(reference_grams)), "100")) exit(40);
+    lv_obj_send_event(id(reference_calibrate), LV_EVENT_CLICKED, nullptr);
     if (lv_screen_active() != id(device_menu)->obj || id(platform_calibration)[1] != 2) exit(40);
     lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
 - delay: 1200ms

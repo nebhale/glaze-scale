@@ -1,0 +1,29 @@
+defaults:
+  left: "0"
+  width: "100%"
+  optional: "true"
+  prefix: ""
+  suffix: ""
+button:
+  id: ${field}
+  x: ${left}
+  y: ${top}
+  width: ${width}
+  height: 44
+  styles: panel_style
+  pad_left: 12
+  pad_right: 12
+  on_click:
+    - lambda: glaze::view.${action};
+  widgets:
+    - label:
+        id: ${field}_text
+        align: CENTER
+        width: 100%
+        long_mode: DOT
+        text: !lambda |-
+          const auto &value = glaze::station.${value};
+          return value.empty() ? std::string("${prompt}") : "${prefix}" + value + "${suffix}";
+        text_color: !lambda |-
+          const auto &palette = glaze::palette_at(glaze::production_palette);
+          return lv_color_hex(${optional} && glaze::station.${value}.empty() ? palette.muted : palette.ink);

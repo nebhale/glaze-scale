@@ -12,8 +12,8 @@
           id(simulated_load) = 220;
       - delay: 1200ms
       - lambda: |-
-          lv_textarea_set_text(id(settings_value), "100");
-          lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
+          lv_textarea_set_text(id(reference_grams), "100");
+          lv_obj_send_event(id(reference_calibrate), LV_EVENT_CLICKED, nullptr);
           if (lv_screen_active() != id(device_menu)->obj || id(platform_calibration) != glaze::Calibration{20, 2}) exit(161);
       - delay: 65s
       - lambda: std::_Exit(0);

@@ -27,7 +27,7 @@ lvgl:
       indicator: {radius: "${slider_radius}"}
       knob: {radius: "${slider_knob_radius}"}
   style_definitions:
-    # Runtime-created form buttons bypass ESPHome's per-widget theme.
+    # Runtime-created catalog rows and autocomplete buttons bypass ESPHome's per-widget theme.
     - id: control_corners
       radius: "${control_radius}"
     - id: card_corners

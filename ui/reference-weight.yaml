@@ -1,0 +1,52 @@
+id: reference_weight_page
+styles: page_style
+on_load:
+  - lvgl.label.update: {id: reference_prompt, text: Weight in grams}
+  - lvgl.textarea.update: {id: reference_grams, text: ""}
+widgets:
+  - label: {x: "${screen_inset}", y: 8, text_font: montserrat_24, text: Reference Item}
+  - label: {id: reference_prompt, x: "${screen_inset}", y: 50, width: 344, long_mode: DOT, styles: accent_style, text: Weight in grams}
+  - textarea:
+      id: reference_grams
+      x: 360
+      y: 37
+      width: 112
+      height: 46
+      pad_all: 8
+      one_line: true
+      state: {focused: true}
+      accepted_chars: "0123456789"
+      max_length: 4
+      styles: panel_style
+  - button:
+      <<: !include {file: editor-button.yaml, vars: {caption: Cancel, left: "${screen_inset}", width: 152, style: panel_style}}
+      id: reference_cancel
+      on_click:
+        - script.execute: open_device_menu
+  - button:
+      <<: !include {file: editor-button.yaml, vars: {caption: Calibrate, left: 168, width: 304, style: primary_style}}
+      id: reference_calibrate
+      on_click:
+        - script.execute: submit_calibration
+  - buttonmatrix:
+      id: reference_keypad
+      align: BOTTOM_MID
+      width: 480
+      height: 184
+      pad_all: "${screen_inset}"
+      styles: page_style
+      border_width: 0
+      pad_row: 5
+      pad_column: 5
+      items: {styles: key_style, radius: "${keyboard_key_radius}"}
+      rows:
+        - buttons: [{text: "1"}, {text: "2"}, {text: "3"}]
+        - buttons: [{text: "4"}, {text: "5"}, {text: "6"}]
+        - buttons: [{text: "7"}, {text: "8"}, {text: "9"}]
+        - buttons: [{text: "0", width: 2}, {text: "\uF55A"}]
+      on_click:
+        - lambda: |-
+            const char *key = lv_buttonmatrix_get_button_text(id(reference_keypad)->obj, x);
+            if (!key) return;
+            if (strcmp(key, LV_SYMBOL_BACKSPACE) == 0) lv_textarea_delete_char(id(reference_grams));
+            else lv_textarea_add_text(id(reference_grams), key);

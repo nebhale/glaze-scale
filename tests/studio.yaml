@@ -137,7 +137,7 @@ esphome:
           lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
       - delay: 200ms
       - lambda: |-
-          auto *field = lv_obj_get_child(id(menu_body), 0);
+          auto *field = id(jar_glaze);
           if (lv_obj_get_style_radius(field, LV_PART_MAIN) != ${control_radius}) exit(112);
           lv_obj_send_event(field, LV_EVENT_CLICKED, nullptr);
       - delay: 400ms
@@ -145,7 +145,7 @@ esphome:
       - delay: 200ms
       - lambda: |-
           if (glaze::station.glaze.label != "Seafoam over Blue Rutile") exit(8);
-          lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+          lv_obj_send_event(id(new_jar_create), LV_EVENT_CLICKED, nullptr);
       - delay: 400ms
       - lambda: |-
           if (glaze::station.state != glaze::State::Unknown || glaze::station.saved_gross) exit(11);
@@ -158,7 +158,7 @@ esphome:
           lv_dropdown_close(picker);
           lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
       - delay: 200ms
-      - lambda: lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+      - lambda: lv_obj_send_event(id(new_jar_create), LV_EVENT_CLICKED, nullptr);
       - delay: 350ms
       - lambda: |-
           if (glaze::station.state != glaze::State::Saved || glaze::station.saved_number != 10) exit(9);

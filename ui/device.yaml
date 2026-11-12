@@ -9,16 +9,12 @@ globals:
   - id: wifi_connecting
     type: bool
     initial_value: 'false'
-  - id: editing_wifi_password
-    type: bool
-    initial_value: 'false'
 
 script:
   - id: open_device_menu
     then:
       - lambda: |-
           glaze::view.settings_open = true;
-          lv_textarea_set_text(id(settings_value), "");
           glaze::label(id(calibration_status), glaze::view.needs_calibration ?
               "Calibration needed" : "Calibrate");
           if (!id(wifi_connecting))
@@ -31,16 +27,22 @@ script:
   - id: close_device_menu
     then:
       - lambda: |-
-          lv_textarea_set_text(id(settings_value), "");
           glaze::view.settings_open = false;
       - lvgl.page.show: weigh_page
       - lambda: glaze::view.render(millis());
   - id: capture_empty
     then:
-      - lambda: |-
-          if (glaze::station.state != glaze::State::Idle) return;
-          if (glaze::device_calibrator.empty(millis())) id(open_setting_field).execute(false);
-          else glaze::label(id(calibrate_prompt), "Waiting for the load cell. Try again once it settles.");
+      - if:
+          condition:
+            lambda: return glaze::station.state == glaze::State::Idle;
+          then:
+            - if:
+                condition:
+                  lambda: return glaze::device_calibrator.empty(millis());
+                then:
+                  - lvgl.page.show: reference_weight_page
+                else:
+                  - lvgl.label.update: {id: calibrate_prompt, text: "Waiting for the load cell. Try again once it settles."}
   - id: open_calibration
     then:
       - lvgl.label.update: {id: calibrate_prompt, text: "Remove everything from the platform"}
@@ -53,10 +55,9 @@ script:
     then:
       - lambda: |-
           auto *from = lv_screen_active();
-          if (from != id(settings_editor)->obj) id(wifi_from_home) = from == id(weigh_page)->obj;
+          if (from != id(wifi_password_page)->obj) id(wifi_from_home) = from == id(weigh_page)->obj;
           glaze::view.settings_open = true;
           id(chosen_ssid).clear();
-          lv_textarea_set_text(id(settings_value), "");
           // Use the dropdown as a menu. Only a row being touched should highlight.
           lv_dropdown_set_selected_highlight(id(network_list)->obj, false);
           lv_dropdown_set_selected(id(network_list)->obj, 0);
@@ -91,83 +92,63 @@ script:
     parameters:
       success: bool
     then:
-      - lambda: |-
-          id(wifi_connecting) = false;
-          lv_obj_set_state(id(wifi_key), LV_STATE_DISABLED, false);
-          glaze::label(id(wifi_status), success ? "Wi-Fi connected" : "Failed. Check password.");
-  - id: open_setting_field
+      - globals.set: {id: wifi_connecting, value: 'false'}
+      - lvgl.widget.enable: wifi_key
+      - lvgl.label.update:
+          id: wifi_status
+          text: !lambda |-
+            return std::string(success ? "Wi-Fi connected" : "Failed. Check password.");
+  - id: submit_wifi
     parameters:
-      is_password_field: bool
+      password: string
     then:
-      - lambda: |-
-          id(editing_wifi_password) = is_password_field;
-          glaze::visible(id(reference_title), !is_password_field);
-          lv_obj_set_y(id(settings_prompt), is_password_field ? 8 : 50);
-          lv_obj_set_width(id(settings_prompt), is_password_field ? ${screen_content_width} : 344);
-          lv_obj_set_pos(id(settings_value), is_password_field ? ${screen_inset} : 360, is_password_field ? 32 : 37);
-          lv_obj_set_width(id(settings_value), is_password_field ? ${screen_content_width} : 112);
-          glaze::label(id(settings_prompt), is_password_field ? "Password for " + id(chosen_ssid) : "Weight in grams");
-          glaze::label(id(settings_submit_label), is_password_field ? "Connect" : "Calibrate");
-          lv_textarea_set_text(id(settings_value), "");
-          lv_textarea_set_accepted_chars_static(id(settings_value), is_password_field ? nullptr : "0123456789");
-          lv_textarea_set_max_length(id(settings_value), is_password_field ? 64 : 4);
-          auto *keys = id(settings_keys)->obj;
-          if (is_password_field) {
-            lv_keyboard_set_mode(keys, LV_KEYBOARD_MODE_TEXT_LOWER);
-          } else {
-            static const char *const digits[] = {
-                "1", "2", "3", "\n",
-                "4", "5", "6", "\n",
-                "7", "8", "9", "\n",
-                "0", LV_SYMBOL_BACKSPACE, ""};
-            constexpr auto single = LV_BUTTONMATRIX_CTRL_WIDTH_1;
-            static const lv_buttonmatrix_ctrl_t widths[] = {
-                single, single, single,
-                single, single, single,
-                single, single, single,
-                LV_BUTTONMATRIX_CTRL_WIDTH_2, single};
-            lv_keyboard_set_map(keys, LV_KEYBOARD_MODE_USER_1, digits, widths);
-            lv_keyboard_set_mode(keys, LV_KEYBOARD_MODE_USER_1);
-          }
-      - lvgl.page.show: settings_editor
-  - id: cancel_setting
+      - if:
+          condition:
+            and:
+              - lvgl.page.is_showing: wifi_password_page
+              - lambda: return !id(wifi_connecting);
+          then:
+            - if:
+                condition:
+                  lambda: return password.size() <= 64;
+                then:
+                  - globals.set: {id: wifi_connecting, value: 'true'}
+                  - script.execute: open_device_menu
+                  - lvgl.label.update: {id: wifi_status, text: "Connecting..."}
+                  - script.execute:
+                      id: connect_wifi
+                      ssid_value: !lambda return id(chosen_ssid);
+                      password_value: !lambda return password;
+                else:
+                  - lvgl.label.update: {id: wifi_password_prompt, text: "Enter a password of up to 64 bytes"}
+  - id: submit_calibration
     then:
-      - lambda: |-
-          if (id(editing_wifi_password)) id(open_networks).execute();
-          else id(open_device_menu).execute();
-  - id: accept_setting
-    then:
-      - lambda: |-
-          if (lv_screen_active() != id(settings_editor)->obj) return;
-          std::string value = lv_textarea_get_text(id(settings_value));
-          if (id(editing_wifi_password)) {
-            if (id(wifi_connecting)) return;
-            if (value.size() > 64) {
-              glaze::label(id(settings_prompt), "Enter a password of up to 64 bytes"); return;
-            }
-            id(wifi_connecting) = true;
-            id(open_device_menu).execute();
-            glaze::label(id(wifi_status), "Connecting...");
-            id(connect_wifi).execute(id(chosen_ssid), value);
-          } else {
-            if (glaze::station.state != glaze::State::Idle) return;
-            int grams = value.empty() || value.find_first_not_of("0123456789") != value.npos ? 0 : atoi(value.c_str());
-            if (!glaze::device_calibrator.calibrate(id(platform_calibration), grams, millis())) {
-              glaze::label(id(settings_prompt), "Use a steady weight, 1 to 2000 g");
-              return;
-            }
-            glaze::view.needs_calibration = false;
-            glaze::station.reading.reset();
-            id(open_device_menu).execute();
-            glaze::label(id(calibration_status), "Calibrated");
-          }
+      - if:
+          condition:
+            and:
+              - lvgl.page.is_showing: reference_weight_page
+              - lambda: return glaze::station.state == glaze::State::Idle;
+          then:
+            - if:
+                condition:
+                  lambda: |-
+                    int grams = atoi(lv_textarea_get_text(id(reference_grams)));
+                    return glaze::device_calibrator.calibrate(id(platform_calibration), grams, millis());
+                then:
+                  - lambda: |-
+                      glaze::view.needs_calibration = false;
+                      glaze::station.reading.reset();
+                  - script.execute: open_device_menu
+                  - lvgl.label.update: {id: calibration_status, text: Calibrated}
+                else:
+                  - lvgl.label.update: {id: reference_prompt, text: "Use a steady weight, 1 to 2000 g"}
 
 interval:
   - interval: 1s
     then:
       - if:
           condition:
-            lambda: return lv_screen_active() == id(networks_page)->obj;
+            lvgl.page.is_showing: networks_page
           then:
             - script.execute: refresh_networks
       - if:
@@ -188,7 +169,7 @@ interval:
                   glaze::view.needs_calibration ? "Calibration needed" : "Calibrate");
             }
           } else if (jar_on_scale) {
-            if (page == id(calibrate_page)->obj || (page == id(settings_editor)->obj && !id(editing_wifi_password)))
+            if (page == id(calibrate_page)->obj || page == id(reference_weight_page)->obj)
               id(open_device_menu).execute();
           }
 
@@ -249,14 +230,19 @@ lvgl:
             options: [Scanning...]
             dropdown_list: !include dropdown-list.yaml
             on_value:
-              - lambda: |-
-                  auto *picker = id(network_list)->obj;
-                  if (lv_screen_active() != id(networks_page)->obj || lv_obj_has_state(picker, LV_STATE_DISABLED)) return;
-                  char ssid[33]{};
-                  lv_dropdown_get_selected_str(picker, ssid, sizeof(ssid));
-                  if (!*ssid) return;
-                  id(chosen_ssid) = ssid;
-                  id(open_setting_field).execute(true);
+              - if:
+                  condition:
+                    and:
+                      - lvgl.page.is_showing: networks_page
+                      - lambda: |-
+                          auto *picker = id(network_list)->obj;
+                          if (lv_obj_has_state(picker, LV_STATE_DISABLED)) return false;
+                          char ssid[33]{};
+                          lv_dropdown_get_selected_str(picker, ssid, sizeof(ssid));
+                          id(chosen_ssid) = ssid;
+                          return !id(chosen_ssid).empty();
+                  then:
+                    - lvgl.page.show: wifi_password_page
         - button:
             id: scan_now
             x: "${screen_inset}"
@@ -268,47 +254,8 @@ lvgl:
               - script.execute: scan_wifi
             widgets:
               - label: {align: CENTER, text: Scan now}
-    - id: settings_editor
-      styles: page_style
-      widgets:
-        - label: {id: reference_title, x: "${screen_inset}", y: 8, text_font: montserrat_24, hidden: true, text: Reference Item}
-        - label: {id: settings_prompt, x: "${screen_inset}", y: 8, width: "${screen_content_width}", long_mode: DOT, styles: accent_style, text: ""}
-        - textarea: {id: settings_value, x: "${screen_inset}", y: 32, width: "${screen_content_width}", height: 46, pad_all: 8, one_line: true, styles: panel_style}
-        - button:
-            id: settings_cancel
-            x: "${screen_inset}"
-            y: 88
-            width: 152
-            height: 44
-            styles: panel_style
-            on_click:
-              - script.execute: cancel_setting
-            widgets:
-              - label: {align: CENTER, text: Cancel}
-        - button:
-            id: settings_continue
-            x: 168
-            y: 88
-            width: 304
-            height: 44
-            styles: primary_style
-            on_click:
-              - script.execute: accept_setting
-            widgets:
-              - label: {id: settings_submit_label, align: CENTER, text: ""}
-        - keyboard:
-            id: settings_keys
-            align: BOTTOM_MID
-            width: 480
-            height: 184
-            styles: page_style
-            pad_all: "${screen_inset}"
-            textarea: settings_value
-            items: {styles: key_style}
-            on_ready:
-              - script.execute: accept_setting
-            on_cancel:
-              - script.execute: cancel_setting
+    - !include wifi-password.yaml
+    - !include reference-weight.yaml
     - !include
       file: platform-prompt.yaml
       vars:

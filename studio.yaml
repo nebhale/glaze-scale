@@ -51,6 +51,10 @@ esphome:
               id(wifi_indicator), id(home_wifi), id(wifi_warning), id(home_service), id(service_icon), id(service_warning), id(manager_dialog),
               id(amount), id(weight_basis),
               id(condition_label), id(fill_level), id(home_tare), id(home_save), id(jar_picker)->obj,
+              {id(new_jar_page)->obj, id(new_jar_create), id(new_jar_notice)},
+              {id(new_glaze_page)->obj, id(new_glaze_create), id(new_glaze_notice)},
+              {id(new_manufacturer_page)->obj, id(new_manufacturer_create), id(new_manufacturer_notice)},
+              {id(new_container_page)->obj, id(new_container_create), id(new_container_notice)},
               id(menu_title), id(menu_body), id(menu_action),
               id(menu_action_text), id(edit_title), id(edit_context), id(edit_caption), id(edit_value), id(location_matches), id(input_keys)->obj,
               id(link_card), {id(jar_title), id(identity), id(maker_label)}, {id(link_title), id(link_number), id(link_maker)},
@@ -63,6 +67,7 @@ esphome:
 packages:
   styles: !include ui/styles.yaml
   screens: !include ui/studio.yaml
+  new_forms: !include ui/new-forms.yaml
   settings: !include ui/device.yaml
   display_controls: !include ui/display.yaml
 

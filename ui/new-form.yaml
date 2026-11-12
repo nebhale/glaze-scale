@@ -1,0 +1,32 @@
+id: ${form}_page
+styles: page_style
+on_load:
+  - lvgl.widget.refresh: ${captions}
+  - lambda: lv_obj_scroll_to_y(id(${form}_body), 0, LV_ANIM_OFF);
+widgets:
+  - label: {x: 60, y: 14, width: 412, text_font: montserrat_24, long_mode: DOT, text: "${title}"}
+  - obj:
+      id: ${form}_body
+      x: "${screen_inset}"
+      y: 60
+      width: "${screen_content_width}"
+      height: 200
+      styles: page_style
+      border_width: 0
+      pad_all: 0
+      widgets: ${fields}
+  - button:
+      <<: !include back-button.yaml
+      on_click:
+        - lambda: glaze::view.back();
+  - button:
+      id: ${form}_create
+      x: 168
+      y: 268
+      width: 304
+      height: 44
+      styles: primary_style
+      on_click:
+        - lambda: glaze::view.menu_action();
+      widgets:
+        - label: {align: CENTER, text: Create}
