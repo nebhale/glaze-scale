@@ -9,6 +9,9 @@ globals:
   - id: wifi_connecting
     type: bool
     initial_value: 'false'
+  - id: editing_wifi_password
+    type: bool
+    initial_value: 'false'
 
 script:
   - id: open_device_menu
@@ -97,6 +100,7 @@ script:
       is_password_field: bool
     then:
       - lambda: |-
+          id(editing_wifi_password) = is_password_field;
           glaze::visible(id(reference_title), !is_password_field);
           lv_obj_set_y(id(settings_prompt), is_password_field ? 8 : 50);
           lv_obj_set_width(id(settings_prompt), is_password_field ? ${screen_content_width} : 344);
@@ -105,12 +109,10 @@ script:
           glaze::label(id(settings_prompt), is_password_field ? "Password for " + id(chosen_ssid) : "Weight in grams");
           glaze::label(id(settings_submit_label), is_password_field ? "Connect" : "Calibrate");
           lv_textarea_set_text(id(settings_value), "");
-          lv_textarea_set_password_mode(id(settings_value), is_password_field);
           lv_textarea_set_accepted_chars_static(id(settings_value), is_password_field ? nullptr : "0123456789");
           lv_textarea_set_max_length(id(settings_value), is_password_field ? 64 : 4);
           auto *keys = id(settings_keys)->obj;
           if (is_password_field) {
-            lv_textarea_set_password_show_time(id(settings_value), 0);
             lv_keyboard_set_mode(keys, LV_KEYBOARD_MODE_TEXT_LOWER);
           } else {
             static const char *const digits[] = {
@@ -131,14 +133,14 @@ script:
   - id: cancel_setting
     then:
       - lambda: |-
-          if (lv_textarea_get_password_mode(id(settings_value))) id(open_networks).execute();
+          if (id(editing_wifi_password)) id(open_networks).execute();
           else id(open_device_menu).execute();
   - id: accept_setting
     then:
       - lambda: |-
           if (lv_screen_active() != id(settings_editor)->obj) return;
           std::string value = lv_textarea_get_text(id(settings_value));
-          if (lv_textarea_get_password_mode(id(settings_value))) {
+          if (id(editing_wifi_password)) {
             if (id(wifi_connecting)) return;
             if (value.size() > 64) {
               glaze::label(id(settings_prompt), "Enter a password of up to 64 bytes"); return;
@@ -191,7 +193,7 @@ interval:
                   glaze::view.needs_calibration ? "Calibration needed" : "Calibrate");
             }
           } else if (jar_on_scale) {
-            if (page == id(calibrate_page)->obj || (page == id(settings_editor)->obj && !lv_textarea_get_password_mode(id(settings_value))))
+            if (page == id(calibrate_page)->obj || (page == id(settings_editor)->obj && !id(editing_wifi_password)))
               id(open_device_menu).execute();
           }
 

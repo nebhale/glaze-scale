@@ -15,9 +15,9 @@
     lv_dropdown_set_selected(picker, 0);
     lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
     if (lv_screen_active() != id(settings_editor)->obj || id(chosen_ssid) != "Studio Wi-Fi" ||
-        !lv_textarea_get_password_mode(id(settings_value)) || *lv_textarea_get_text(id(settings_value))) exit(36);
-    lv_textarea_add_char(id(settings_value), 'x');
-    if (strchr(lv_label_get_text(lv_textarea_get_label(id(settings_value))), 'x')) exit(61);
+        *lv_textarea_get_text(id(settings_value))) exit(36);
+    lv_textarea_add_text(id(settings_value), "Ab3!");
+    if (strcmp(lv_label_get_text(lv_textarea_get_label(id(settings_value))), "Ab3!")) exit(61);
     lv_obj_send_event(id(settings_cancel), LV_EVENT_CLICKED, nullptr);
     if (lv_screen_active() != id(networks_page)->obj || !id(chosen_ssid).empty() || *lv_textarea_get_text(id(settings_value))) exit(62);
     lv_obj_send_event(id(scan_now), LV_EVENT_CLICKED, nullptr);
