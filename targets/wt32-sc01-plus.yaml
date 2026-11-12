@@ -54,7 +54,7 @@ touchscreen:
     interrupt_pin: GPIO7
     transform:
       swap_xy: true
-      mirror_x: true
+      mirror_y: true
 
 output:
   - platform: ledc
