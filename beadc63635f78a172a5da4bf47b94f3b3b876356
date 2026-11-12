@@ -1,0 +1,56 @@
+tests/calibration-recovery.yaml
+  s_bf5d8793b3bf4a::t_71e685a3693107 50-51
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 8,24,33,42,47
+  s_bf5d8793b3bf4a::t_ea99d51b5198b7 1-7,9-23,25-32,34-41,43-46,48-49
+studio/pending_save.h
+  s_bf5d8793b3bf4a::t_2aaa5408947c7b 3,9,29,34,63
+ui/device.yaml
+  s_bf5d8793b3bf4a::t_bb19e34232aab2 159-161
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 158
+ui/studio.yaml
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 108
+scripts/simulate.py
+  s_bf5d8793b3bf4a::t_ea99d51b5198b7 9,83-94,191
+simulator.yaml
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 74
+  s_bf5d8793b3bf4a::t_ea99d51b5198b7 75
+studio.yaml
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 38-39,42
+  s_bf5d8793b3bf4a::t_2aaa5408947c7b 28,40-41
+studio/storage_slot.h
+  s_bf5d8793b3bf4a::t_2aaa5408947c7b 1-88
+tests/maintenance.yaml
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 59,65,111,187
+device.yaml
+  s_bf5d8793b3bf4a::t_2aaa5408947c7b 56
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 55
+studio/calibration.h
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 51-56
+  s_bf5d8793b3bf4a::t_bb19e34232aab2 3-4,8,18-26,29-48
+  s_bf5d8793b3bf4a::t_cfc1fa1e9782da 27-28
+README.md
+  s_bf5d8793b3bf4a::t_ea99d51b5198b7 38,126-127
+tests/studio.yaml
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 19,165
+  s_bf5d8793b3bf4a::t_ea99d51b5198b7 11-12
+  s_bf5d8793b3bf4a::t_363bf7edbe3a78 9-10
+studio/view.h
+  s_bf5d8793b3bf4a::t_bb19e34232aab2 3,87-88,90-94
+  s_bf5d8793b3bf4a::t_2d2aa103332d6a 83,85-86,89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "beadc63635f78a172a5da4bf47b94f3b3b876356",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}

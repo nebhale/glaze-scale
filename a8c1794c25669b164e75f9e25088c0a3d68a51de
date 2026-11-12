@@ -1,0 +1,43 @@
+LICENSE
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-201
+Makefile
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 2,8
+.github/pull_request_template.md
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-7
+scripts/package-release
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-20
+README.md
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 3-4,137-157
+.github/workflows/ci.yaml
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-76
+.github/actions/setup-esphome/action.yml
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-15
+.github/ISSUE_TEMPLATE/feature.yml
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-15
+components/scale_version/__init__.py
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 24-25
+.github/dependabot.yml
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-19
+.github/ISSUE_TEMPLATE/bug.yml
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-32
+.github/ISSUE_TEMPLATE/config.yml
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-5
+.github/workflows/release.yaml
+  s_bf5d8793b3bf4a::t_0a672f0cc1eb12 1-32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a8c1794c25669b164e75f9e25088c0a3d68a51de",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
