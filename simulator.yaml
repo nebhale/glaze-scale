@@ -62,6 +62,8 @@ script:
           id(wifi_result).execute(success);
 
 globals:
+  - id: !extend platform_calibration
+    initial_value: '{0, 1}'  # Simulated raw samples start in grams.
   - {id: sim_nfc_failed, type: bool, initial_value: 'false'}
   - {id: sim_nfc_read_error, type: bool, initial_value: 'false'}
   - id: simulated_load
@@ -74,8 +76,8 @@ interval:
       - lambda: |-
           const float raw = id(simulated_load);
           glaze::device_calibrator.sample(raw, millis());
-          const auto &cal = glaze::platform_calibration;
-          if (cal.counts_per_gram != 0) glaze::station.reading.sample((raw - cal.zero) / cal.counts_per_gram, millis());
+          const auto &[zero, counts_per_gram] = id(platform_calibration);
+          if (counts_per_gram != 0) glaze::station.reading.sample((raw - zero) / counts_per_gram, millis());
 
 binary_sensor:
   - platform: sdl

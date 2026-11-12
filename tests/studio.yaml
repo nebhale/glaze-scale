@@ -13,14 +13,14 @@ esphome:
       - if:
           condition:
             lambda: return getenv("GLAZE_TEST_CALIBRATION") != nullptr;
-          then: !include calibration-recovery.yaml
+          then: !include calibration-persistence.yaml
       - if:
           condition:
             lambda: return getenv("GLAZE_TEST_RECOVERY") != nullptr;
           then: !include recovery.yaml
       - lambda: |-
           if (getenv("GLAZE_TEST_DISPLAY_RESTART"))
-            exit(glaze::display_power.brightness() == 60 && glaze::display_power.timeout_option() == 4 && glaze::platform_calibration.zero == 600 ? 0 : 60);
+            exit(glaze::display_power.brightness() == 60 && glaze::display_power.timeout_option() == 4 && id(platform_calibration)[0] == 600 ? 0 : 60);
       - lambda: |-
           for (auto *control : {id(home_save), id(back_key), id(wifi_key), id(nfc_recover), id(nfc_cancel),
                                 id(manager_recover), id(manager_cancel), id(edit_value), id(timeout_select)->obj,
@@ -166,7 +166,7 @@ esphome:
               lv_obj_has_flag(id(fill_level), LV_OBJ_FLAG_HIDDEN) || lv_bar_get_value(id(fill_level)) != 100) exit(80);
           // Set a persistent zero with a tag present and check it again after restarting.
           lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
-          if (glaze::platform_calibration.zero != 600) exit(77);
+          if (id(platform_calibration)[0] != 600) exit(77);
       - delay: 1s
       - lambda: |-
           if (glaze::station.reading.gross(millis()) != 0 || strcmp(lv_label_get_text(id(amount)), "0 g") ||

@@ -152,19 +152,14 @@ script:
           } else {
             if (glaze::station.state != glaze::State::Idle) return;
             int grams = value.empty() || value.find_first_not_of("0123456789") != value.npos ? 0 : atoi(value.c_str());
-            glaze::Calibration cal;
-            if (!glaze::device_calibrator.calibrate(cal, grams, millis())) {
+            if (!glaze::device_calibrator.calibrate(id(platform_calibration), grams, millis())) {
               glaze::label(id(settings_prompt), "Use a steady weight, 1 to 2000 g");
-              return;
-            }
-            if (!glaze::platform_calibration.save(cal)) {
-              glaze::label(id(settings_prompt), "Could not save. Retry.");
               return;
             }
             glaze::view.needs_calibration = false;
             glaze::station.reading.reset();
             id(open_device_menu).execute();
-            glaze::label(id(calibration_status), "Calibration saved");
+            glaze::label(id(calibration_status), "Calibrated");
           }
 
 interval:
