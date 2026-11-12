@@ -173,10 +173,8 @@ class View {
         next_jar_offset_ = next.as<int>();
         return;
       }
-      if (unlinked) add_jar_option("new", "New jar...");
-      else if (jar_numbers_.empty()) add_jar_option("retry", "No active jars");
     }
-
+    add_jar_option("new", unlinked ? "New jar..." : "Create jar...");
     next_jar_offset_.reset();
     lv_dropdown_set_options(w.jar_picker, jar_options_.c_str());
     jar_options_.clear();
@@ -362,13 +360,13 @@ class View {
   void menu(uint32_t now) {
     auto &s = station;
     if (s.screen == Screen::Setup) {
-      button(w.menu_action, w.action_label, "Create", s.has_glaze() && s.can_weigh(now));
+      button(w.menu_action, w.action_label, "Create", s.can_create(now));
     } else if (s.screen == Screen::NewGlaze) {
-      button(w.menu_action, w.action_label, "Create", s.present && s.draft.ready());
+      button(w.menu_action, w.action_label, "Create", s.can_edit_setup() && s.draft.ready());
     } else if (s.screen == Screen::NewManufacturer) {
-      button(w.menu_action, w.action_label, "Create", s.present && !s.manufacturer_name.empty());
+      button(w.menu_action, w.action_label, "Create", s.can_edit_setup() && !s.manufacturer_name.empty());
     } else if (s.screen == Screen::NewContainer) {
-      button(w.menu_action, w.action_label, "Create", s.present && !s.container_name.empty());
+      button(w.menu_action, w.action_label, "Create", s.can_edit_setup() && !s.container_name.empty());
     } else if (s.screen == Screen::Link) button(w.menu_action, w.action_label, "Link", s.present);
     else visible(w.menu_action, false);
     const bool loading = s.catalog_offset.has_value();

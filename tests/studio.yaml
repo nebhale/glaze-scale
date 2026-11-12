@@ -167,10 +167,13 @@ esphome:
       - lambda: |-
           if (glaze::station.reading.gross(millis()) != 0 || strcmp(lv_label_get_text(id(amount)), "0 g") ||
               lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(78);
-          // Flush preferences through the device shutdown path before the harness relaunches the process.
-          App.safe_reboot();
+      - script.execute: test_untagged
+      - script.wait: test_untagged
+      - lambda: App.safe_reboot();
 
 script:
+  - id: test_untagged
+    then: !include untagged.yaml
   - id: tap_screen
     parameters: {x: int, y: int}
     then:

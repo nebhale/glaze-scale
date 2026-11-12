@@ -42,7 +42,7 @@ struct PendingSave {
     saved.path = record["path"] | "";
     saved.number = record["number"].as<int>();
     if (saved.setup()) {
-      if (saved.number != 0 || !payload["uid"].is<std::string>()) return false;
+      if (saved.number != 0 || (!payload["uid"].isNull() && !payload["uid"].is<std::string>())) return false;
     } else {
       const std::string prefix = "/containers/", suffix = "/measurements";
       if (saved.number <= 0 || saved.path.size() <= prefix.size() + suffix.size() ||

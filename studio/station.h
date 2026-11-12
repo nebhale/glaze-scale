@@ -33,7 +33,7 @@ struct Jar {
 };
 
 enum class Screen { Home, Setup, NewContainer, NewGlaze, NewManufacturer, Pick, Edit, Link };
-enum class State { Idle, Lookup, Unknown, Ready, Pending, Saved };
+enum class State { Idle, Lookup, Unknown, ManualSetup, Ready, Pending, Saved };
 enum class List { Manufacturers, Glazes, Presets, Locations, Cones, ProductLines, Classifications };
 enum class Edit { Location, Cost, GlazeName, ContainerName, ContainerWeight, ProductCode, Cone, ProductLine, ManufacturerName };
 struct Option { std::string id, label, code; };
@@ -116,6 +116,7 @@ class Station {
     present = false;
   }
   bool selected() const { return (manual || present) && jar.valid() && !jar.archived; }
+  bool can_edit_setup() const { return state == State::ManualSetup || (present && state == State::Unknown); }
   bool has_glaze() const { return !glaze.label.empty(); }
 
   void platform_tared() {
@@ -143,6 +144,10 @@ class Station {
     auto gross = reading.gross(now);
     return (present || manual) && reading.stable(now) && gross && *gross >= 0 && *gross <= 2000;
   }
+  bool can_create(uint32_t now) const {
+    return can_edit_setup() && has_glaze() && can_weigh(now) &&
+           (state != State::ManualSetup || reading.gross(now) >= load_detection_g);
+  }
   bool below_tare(Grams gross) const {
     return gross && jar.tare && *gross < *jar.tare;
   }
@@ -167,7 +172,7 @@ class Station {
     if (manual) {
       const auto gross = reading.gross(now);
       if (gross >= load_detection_g) manual_load_seen_ = true;
-      if (manual_load_seen_ && gross == 0 && reading.stable(now)) clear_selection();
+      if (state != State::ManualSetup && manual_load_seen_ && gross == 0 && reading.stable(now)) clear_selection();
     }
     if (!present && !uid.empty() && now - lost_at_ >= 650) clear();
     if (state == State::Pending) {
@@ -177,7 +182,7 @@ class Station {
       return;
     }
     if (!present && !manual) return;
-    if (catalog_offset && present && (screen == Screen::Pick || screen == Screen::Edit)) {
+    if (catalog_offset && can_edit_setup() && (screen == Screen::Pick || screen == Screen::Edit)) {
       load_catalog_page();
     }
     if (!due(now)) return;
@@ -187,7 +192,7 @@ class Station {
 
   void confirm(uint32_t now) {
     if (!slot_read_ || pending_.active() || !can_weigh(now)) return;
-    bool setup = state == State::Unknown && screen == Screen::Setup && has_glaze();
+    bool setup = screen == Screen::Setup && can_create(now);
     if (!setup && (screen != Screen::Home || !can_save(now))) return;
     JsonDocument data;
     char nonce[33];
@@ -198,7 +203,7 @@ class Station {
     data["gross_g"] = *reading.gross(now);
     if (setup) {
       pending_.path = "/device/jar-setups";
-      data["uid"] = uid;
+      if (present) data["uid"] = uid;
       if (glaze.id.empty()) {
         selected_draft.write(data["new_glaze"].to<JsonObject>());
       } else data["glaze_id"] = glaze.id;
@@ -228,29 +233,38 @@ class Station {
   }
 
   void begin_setup() {
-    if (present && state == State::Unknown) { screen = Screen::Setup; notice.clear(); }
+    if (screen != Screen::Home || state == State::Pending) return;
+    if (uid.empty()) {
+      clear_selection();
+      manual = true;
+      manual_load_seen_ = reading.gross(esphome::millis()) >= load_detection_g;
+      state = State::ManualSetup;
+    }
+    if (!can_edit_setup()) return;
+    screen = Screen::Setup;
+    notice.clear();
   }
   void begin_glaze() {
-    if (!present || state != State::Unknown || screen != Screen::Pick || list != List::Glazes) return;
+    if (!can_edit_setup() || screen != Screen::Pick || list != List::Glazes) return;
     draft = selected_draft;
     screen = Screen::NewGlaze;
     notice.clear();
   }
   void use_glaze() {
-    if (!present || state != State::Unknown || screen != Screen::NewGlaze || !draft.ready()) return;
+    if (!can_edit_setup() || screen != Screen::NewGlaze || !draft.ready()) return;
     selected_draft = draft;
     glaze = {"", draft.name, draft.code};
     screen = Screen::Setup;
     notice.clear();
   }
   void begin_manufacturer() {
-    if (!present || state != State::Unknown || screen != Screen::Pick || list != List::Manufacturers) return;
+    if (!can_edit_setup() || screen != Screen::Pick || list != List::Manufacturers) return;
     manufacturer_name.clear();
     screen = Screen::NewManufacturer;
     notice.clear();
   }
   void create_manufacturer() {
-    if (!present || state != State::Unknown || screen != Screen::NewManufacturer || manufacturer_name.empty()) return;
+    if (!can_edit_setup() || screen != Screen::NewManufacturer || manufacturer_name.empty()) return;
     JsonDocument data;
     data["name"] = manufacturer_name;
     auto r = manager.call("POST", "/manufacturers", json_body(data));
@@ -268,14 +282,14 @@ class Station {
     }
   }
   void begin_container() {
-    if (!present || state != State::Unknown || screen != Screen::Pick || list != List::Presets) return;
+    if (!can_edit_setup() || screen != Screen::Pick || list != List::Presets) return;
     container_name.clear();
     container_weight.clear();
     notice.clear();
     screen = Screen::NewContainer;
   }
   void create_container() {
-    if (!present || state != State::Unknown || screen != Screen::NewContainer || container_name.empty()) return;
+    if (!can_edit_setup() || screen != Screen::NewContainer || container_name.empty()) return;
     JsonDocument data;
     data["name"] = container_name;
     if (!container_weight.empty()) data["tare_g"] = std::strtol(container_weight.c_str(), nullptr, 10);
@@ -295,7 +309,7 @@ class Station {
     }
   }
   void pick(List kind) {
-    if (!present || state != State::Unknown) return;
+    if (!can_edit_setup()) return;
     list = kind;
     switch (kind) {
       case List::Locations: edit(Edit::Location); break;
@@ -312,7 +326,7 @@ class Station {
     } else catalog_offset = 0;
   }
   void choose(size_t index) {
-    if (!present || state != State::Unknown || screen != Screen::Pick || index >= options.size()) return;
+    if (!can_edit_setup() || screen != Screen::Pick || index >= options.size()) return;
     const auto choice = options[index];
     if (list == List::Manufacturers || list == List::Classifications) {
       if (list == List::Manufacturers) draft.manufacturer = choice;
@@ -327,7 +341,7 @@ class Station {
     notice.clear();
   }
   void edit(Edit kind) {
-    if (!present || state != State::Unknown) return;
+    if (!can_edit_setup()) return;
     catalog_offset.reset();
     editor = kind;
     screen = Screen::Edit;
@@ -344,7 +358,7 @@ class Station {
     }
   }
   void entered(const std::string &value) {
-    if (!present || state != State::Unknown || screen != Screen::Edit) return;
+    if (!can_edit_setup() || screen != Screen::Edit) return;
     if (auto *text = draft_text(editor)) {
       const auto first = value.find_first_not_of(" \t\r\n");
       *text = first == std::string::npos ? "" : value.substr(first, value.find_last_not_of(" \t\r\n") - first + 1);
@@ -406,6 +420,10 @@ class Station {
     notice.clear();
     catalog_offset.reset();
     switch (screen) {
+      case Screen::Setup:
+        if (state == State::ManualSetup) clear_selection();
+        else screen = Screen::Home;
+        break;
       case Screen::Edit:
         if (editor == Edit::ManufacturerName) screen = Screen::NewManufacturer;
         else if (draft_text(editor)) screen = Screen::NewGlaze;
