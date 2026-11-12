@@ -1,0 +1,21 @@
+device.yaml
+  s_bf5d8793b3bf4a::t_23d267e15cfa7a 28
+home-assistant.yaml
+  s_bf5d8793b3bf4a::t_44e6b7f50ff2e8 7-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "96eaf02c3283c41cd210e3fcdfb5880eaa173a53",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
