@@ -14,7 +14,9 @@ wifi:
         glaze::station.manager.network_changed();
         char ssid[wifi::SSID_BUFFER_SIZE];
         id(connected_ssid) = id(studio_wifi).wifi_ssid_to(ssid);
+    - script.execute: check_manager_on_connect
   on_disconnect:
+    - script.stop: check_manager_on_connect
     - lambda: |-
         id(connected_ssid).clear();
 
@@ -56,6 +58,12 @@ sensor:
             if (cal.counts_per_gram != 0) glaze::station.reading.sample((x - cal.zero) / cal.counts_per_gram, millis());
 
 script:
+  - id: check_manager_on_connect
+    mode: restart
+    then:
+      # Let Wi-Fi finish its connection callback before starting TLS.
+      - delay: 100ms
+      - lambda: glaze::station.manager.check_connection();
   - id: poll_nfc
     then:
       - lambda: id(show_nfc_status).execute(id(reader).is_failed(), id(reader).status_has_warning());

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/components/http_request/http_request.h"
+#include "esphome/core/log.h"
 
 namespace glaze {
 
@@ -60,6 +61,8 @@ class Manager {
     auto reply = call("GET", "/device/options/jars");
     const bool available = reply.code == 200 && reply.data["items"].is<JsonArray>();
     status = available ? ServiceStatus::Available : ServiceStatus::Unavailable;
+    if (available) ESP_LOGI("manager", "Connected to Glaze Manager");
+    else ESP_LOGW("manager", "Inventory check failed (response code %d)", reply.code);
     return available;
   }
 
