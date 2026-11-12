@@ -103,11 +103,14 @@ def verify_recovery(origin, program, env, directory, recovery):
                                "location": "Studio shelf"})
     request(origin, "PUT", "/tags/A1A2A3A4/binding",
             {"container_id": jar["id"], "expected_revision": jar["revision"]})
-    for create in (False, True):
-        prefs = Path(directory) / ("create-recovery" if create else "save-recovery")
+    for workflow in ("save", "create", "untagged-create"):
+        create = workflow != "save"
+        prefs = Path(directory) / (workflow + "-recovery")
         phase_env = {**env, "ESPHOME_PREFDIR": str(prefs)}
         if create:
             phase_env["GLAZE_TEST_CREATE"] = "1"
+        if workflow == "untagged-create":
+            phase_env["GLAZE_TEST_UNTAGGED"] = "1"
         def run_phase(phase):
             subprocess.run([str(program)], env={**phase_env, "GLAZE_TEST_RECOVERY": phase},
                            check=True, timeout=20)
@@ -129,9 +132,18 @@ def verify_recovery(origin, program, env, directory, recovery):
         run_phase("clean")
         assert len(attempts) == count
 
-        linked = request(origin, "GET", "/tags/" + ("B1B2B3B4" if create else "A1A2A3A4"))["container"]
-        container = request(origin, "GET", f"/containers/{linked['container_id']}")
-        history = request(origin, "GET", f"/containers/{linked['container_id']}/measurements")
+        if workflow == "untagged-create":
+            path, payload = attempts[0]
+            assert "uid" not in payload
+            receipt = post(path.removeprefix("/api/v1"), payload)
+            container_id = receipt["container_id"]
+        else:
+            linked = request(origin, "GET", "/tags/" + ("B1B2B3B4" if create else "A1A2A3A4"))["container"]
+            container_id = linked["container_id"]
+        container = request(origin, "GET", f"/containers/{container_id}")
+        if workflow == "untagged-create":
+            assert container["tag_uid"] is None
+        history = request(origin, "GET", f"/containers/{container_id}/measurements")
         assert len(history) == 1 and history[0]["gross_g"] == (600 if create else 475), history
         if create:
             assert container["location"] == "Kiln room" and float(container["cost_usd"]) == 15.50
@@ -182,6 +194,10 @@ def main():
                 assert sorted(item["gross_g"] for item in history) == [756, 774], history
                 created = request(origin, "GET", "/tags/04010203")["container"]
                 assert created["number"] == 10 and created["gross_g"] == 600, created
+                untagged = request(origin, "GET", "/device/jars/11")
+                assert untagged["tag_uid"] is None and untagged["full_weight_g"] == 525, untagged
+                history = request(origin, "GET", f"/containers/{untagged['container_id']}/measurements")
+                assert len(history) == 1 and history[0]["gross_g"] == 525, history
                 linked = request(origin, "GET", "/tags/ABCDEF12")["container"]
                 assert linked["number"] == 2 and linked["gross_g"] == 350, linked
                 removed = request(origin, "GET", "/device/jars/3")

@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: nebhale/glaze-manager
-          ref: a352b567010b17b7139046448fb5eac10944ec40 # v1.5.0
+          ref: 84797e8bae245fca8de5137c60f7854c15367edf # v1.6.0
           path: manager-under-test
           persist-credentials: false
       - uses: ./.github/actions/setup-esphome

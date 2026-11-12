@@ -1,0 +1,40 @@
+# Start from the tared platform left by the tagged setup test.
+- lambda: |-
+    glaze::station.device = "glaze-manual-setup-test";
+    glaze::station.removed(millis());
+- delay: 1s
+- lambda: lv_dropdown_open(id(jar_picker)->obj);
+- delay: 650ms
+- lambda: |-
+    auto *picker = id(jar_picker)->obj;
+    lv_dropdown_set_selected(picker, lv_dropdown_get_option_count(picker) - 1);
+    char last[32];
+    lv_dropdown_get_selected_str(picker, last, sizeof(last));
+    if (strcmp(last, "Create jar...")) exit(150);
+    lv_dropdown_close(picker);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (glaze::station.screen != glaze::Screen::Setup || glaze::station.present) exit(151);
+    lv_obj_send_event(lv_obj_get_child(id(menu_body), 0), LV_EVENT_CLICKED, nullptr);
+- delay: 400ms
+- lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), 0), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (glaze::station.glaze.label != "Seafoam over Blue Rutile" ||
+        !lv_obj_has_state(id(menu_action), LV_STATE_DISABLED)) exit(152);
+    id(simulated_load) = 1125;
+- delay: 1s
+- lambda: |-
+    if (lv_obj_has_state(id(menu_action), LV_STATE_DISABLED)) exit(153);
+    lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+- delay: 500ms
+- lambda: |-
+    if (glaze::station.state != glaze::State::Saved || !glaze::station.selected() ||
+        !glaze::station.manual || glaze::station.saved_gross != 525 ||
+        strcmp(lv_label_get_text(id(weight_basis)), "of 525 g remaining") ||
+        lv_bar_get_value(id(fill_level)) != 100) exit(154);
+    id(simulated_load) = 600;
+- delay: 1s
+- lambda: |-
+    if (glaze::station.selected() || glaze::station.state != glaze::State::Idle) exit(155);

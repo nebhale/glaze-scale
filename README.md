@@ -39,7 +39,10 @@ each appears in the same place during selection, weighing, saving, and removal.
 requires a settled weight and a selected jar. Choose a jar in the dropdown or
 place a jar with a known NFC tag on the scale to select it automatically. You
 can choose a jar before placing it on the platform. After you lift it off, the
-manual selection clears when the gross weight settles at zero. An unknown tag shows **Unlinked jar** on the weighing screen.
+manual selection clears when the gross weight settles at zero. Choose **Create jar...**
+at the bottom of the regular dropdown to create an untagged jar with Glaze Manager
+1.6.0 or later. Choose a glaze and place the jar on the scale. **Create** saves
+the jar and its first settled weight together. An unknown tag shows **Unlinked jar** on the weighing screen.
 Open its dropdown to link an untagged jar or choose **New jar...**. Choose a
 glaze, optionally select a container preset, enter a location or tap a matching
 suggestion, and enter the cost in USD. **Create** links the tag and

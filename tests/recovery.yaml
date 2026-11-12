@@ -7,7 +7,8 @@
       - lambda: |-
           glaze::station.device = "glaze-recovery-test";
           const bool setup = getenv("GLAZE_TEST_CREATE") != nullptr;
-          glaze::station.tag(setup ? "B1B2B3B4" : "A1A2A3A4", millis());
+          if (!getenv("GLAZE_TEST_UNTAGGED"))
+            glaze::station.tag(setup ? "B1B2B3B4" : "A1A2A3A4", millis());
           id(simulated_load) = setup ? 600 : 475;
       - delay: 1300ms
       - if:
