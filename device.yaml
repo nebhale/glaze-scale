@@ -6,6 +6,13 @@ packages:
   hardware: !include targets/wt32-sc01-plus.yaml
   studio: !include studio.yaml
 
+esp32:
+  framework:
+    sdkconfig_options:
+      # Glaze Manager requires TLS 1.3. ESP-IDF needs peer certificate support for it.
+      CONFIG_MBEDTLS_SSL_KEEP_PEER_CERTIFICATE: y
+      CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: y
+
 wifi:
   id: studio_wifi
   reboot_timeout: 0s
