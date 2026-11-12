@@ -117,7 +117,11 @@ class View {
     if (jar_numbers_[i] == "retry") lv_dropdown_open(w.jar_picker);
     else if (jar_numbers_[i] == "new") station.begin_setup();
     else if (station.state == State::Unknown) station.select_unlinked_jar(jar_numbers_[i]);
-    else station.select_jar(jar_numbers_[i]);
+    else {
+      station.select_jar(jar_numbers_[i]);
+      // Give LVGL the cached heading and reading before its next display refresh.
+      render(esphome::millis());
+    }
   }
   void menu_action() {
     if (!same_session()) return;
