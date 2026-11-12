@@ -60,7 +60,6 @@ class Transport {
       cfg.event_handler = receive;
       client_ = esp_http_client_init(&cfg);
       if (!client_) return reply;
-      esp_http_client_set_header(client_, "Content-Type", "application/json");
       if (!connection_->access_id.empty()) {
         esp_http_client_set_header(client_, "CF-Access-Client-Id", connection_->access_id.c_str());
         esp_http_client_set_header(client_, "CF-Access-Client-Secret", connection_->access_secret.c_str());
@@ -70,6 +69,8 @@ class Transport {
                         job.method == "PUT" ? HTTP_METHOD_PUT : HTTP_METHOD_POST;
     if (esp_http_client_set_url(client_, url.c_str()) != ESP_OK ||
         esp_http_client_set_method(client_, method) != ESP_OK ||
+        // ESP-IDF clears Content-Type when resetting the previous request body.
+        esp_http_client_set_header(client_, "Content-Type", "application/json") != ESP_OK ||
         esp_http_client_set_post_field(client_, job.body.empty() ? nullptr : job.body.data(), job.body.size()) != ESP_OK ||
         esp_http_client_set_user_data(client_, &body) != ESP_OK) {
       close();
