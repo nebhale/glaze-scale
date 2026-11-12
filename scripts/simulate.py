@@ -119,7 +119,7 @@ def verify_calibration(program, env, directory):
                        env={**env, "ESPHOME_PREFDIR": str(prefs), "GLAZE_TEST_CALIBRATION": phase})
 
 
-def verify_recovery(origin, program, env, directory, recovery):
+def verify_interrupted_saves(origin, program, env, directory, recovery):
     def post(path, body):
         return request(origin, "POST", path, body)
 
@@ -130,54 +130,51 @@ def verify_recovery(origin, program, env, directory, recovery):
                                "location": "Studio shelf"})
     request(origin, "PUT", "/tags/A1A2A3A4/binding",
             {"container_id": jar["id"], "expected_revision": jar["revision"]})
+    def inventory():
+        return {item["id"]: item for item in request(origin, "GET", "/containers")["items"]}
+
     for workflow in ("save", "create", "untagged-create"):
-        create = workflow != "save"
-        prefs = Path(directory) / (workflow + "-recovery")
-        phase_env = {**env, "ESPHOME_PREFDIR": str(prefs)}
-        if create:
-            phase_env["GLAZE_TEST_CREATE"] = "1"
-        if workflow == "untagged-create":
-            phase_env["GLAZE_TEST_UNTAGGED"] = "1"
-        def run_phase(phase):
-            subprocess.run([str(program)], env={**phase_env, "GLAZE_TEST_RECOVERY": phase},
-                           check=True, timeout=20)
+        for fault in ("before", "after"):
+            prefs = Path(directory) / f"interrupted-{workflow}-{fault}"
+            phase_env = {**env, "ESPHOME_PREFDIR": str(prefs)}
+            if workflow != "save":
+                phase_env["GLAZE_TEST_CREATE"] = "1"
+            if workflow == "untagged-create":
+                phase_env["GLAZE_TEST_UNTAGGED"] = "1"
+            if fault == "after":
+                phase_env["GLAZE_TEST_GRACEFUL"] = "1"
 
-        recovery["fault"] = "after" if create else "before"
-        attempts = recovery["attempts"] = []
-        run_phase("start")
-        assert attempts
-        count = len(attempts)
-        recovery["fault"] = "before"
-        run_phase("restart")
-        assert len(attempts) > count
-        count = len(attempts)
-        recovery["fault"] = None
-        run_phase("finish")
-        assert len(attempts) == count + 1
-        assert all(attempt == attempts[0] for attempt in attempts)
-        count = len(attempts)
-        run_phase("clean")
-        assert len(attempts) == count
+            def run_phase(phase):
+                subprocess.run([str(program)], env={**phase_env, "GLAZE_TEST_INTERRUPTION": phase},
+                               check=True, timeout=20)
 
-        if workflow == "untagged-create":
-            path, payload = attempts[0]
-            assert "uid" not in payload
-            receipt = post(path.removeprefix("/api/v1"), payload)
-            container_id = receipt["container_id"]
-        else:
-            linked = request(origin, "GET", "/tags/" + ("B1B2B3B4" if create else "A1A2A3A4"))["container"]
-            container_id = linked["container_id"]
-        container = request(origin, "GET", f"/containers/{container_id}")
-        if workflow == "untagged-create":
-            assert container["tag_uid"] is None
-        history = request(origin, "GET", f"/containers/{container_id}/measurements")
-        assert len(history) == 1 and history[0]["gross_g"] == (600 if create else 475), history
-        if create:
-            assert container["location"] == "Kiln room" and float(container["cost_usd"]) == 15.50
-            assert attempts[0][1]["new_glaze"]["name"] == "Mist Blue"
-        else:
-            assert linked["container_id"] == jar["id"] and linked["remaining_g"] == 225
-    print("Verified one durable Save and Create through tag removal, tag replacement and process restarts.")
+            previous = inventory()
+            recovery["fault"] = fault
+            attempts = recovery["attempts"] = []
+            run_phase("start")
+            count = len(attempts)
+            assert count >= 2 and all(attempt == attempts[0] for attempt in attempts), attempts
+            recovery["fault"] = None
+            run_phase("restart")
+            assert len(attempts) == count, "Reboot replayed a RAM-only request"
+
+            current = inventory()
+            added = current.keys() - previous.keys()
+            if workflow == "save":
+                assert not added
+                history = request(origin, "GET", f"/containers/{jar['id']}/measurements")
+                assert [row["gross_g"] for row in history] == ([] if fault == "before" else [475])
+            elif fault == "before":
+                assert not added
+            else:
+                assert len(added) == 1
+                identifier, = added
+                created = current[identifier]
+                assert created["tag_uid"] == (None if workflow == "untagged-create" else "B1B2B3B4")
+                assert created["location"] == "Kiln room" and float(created["cost_usd"]) == 15.50
+                history = request(origin, "GET", f"/containers/{identifier}/measurements")
+                assert [row["gross_g"] for row in history] == [600]
+    print("Verified in-session retries and no replay after restart, before and after Manager commits.")
 
 
 def main():
@@ -252,7 +249,7 @@ def main():
                 assert len(retries) == 2 and retries[0] == retries[1] and retries[0]["gross_g"] == 350, retries
                 print("Verified saved readings, linked jar, and atomic setup in Glaze Manager.")
                 verify_calibration(program, env, directory)
-                verify_recovery(origin, program, env, directory, recovery)
+                verify_interrupted_saves(origin, program, env, directory, recovery)
             return 0 if result.returncode == -signal.SIGINT and not test else result.returncode
         finally:
             server.should_exit = True

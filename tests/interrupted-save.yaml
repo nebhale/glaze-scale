@@ -1,8 +1,8 @@
-# Each phase starts a fresh simulator process. The first two exit without running
-# shutdown hooks, so recovery depends on the original synchronous flash write.
+# Keep retrying the original jar until shutdown. The next boot uses the same
+# preferences directory and must start idle without resubmitting the request.
 - if:
     condition:
-      lambda: return std::string(getenv("GLAZE_TEST_RECOVERY")) == "start";
+      lambda: return std::string(getenv("GLAZE_TEST_INTERRUPTION")) == "start";
     then:
       - lambda: |-
           glaze::station.device = "glaze-recovery-test";
@@ -46,27 +46,13 @@
           glaze::station.confirm(millis());
           if (glaze::station.state != glaze::State::Pending || glaze::station.screen != glaze::Screen::Home ||
               !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(142);
-          std::_Exit(0);
+          if (getenv("GLAZE_TEST_GRACEFUL")) App.safe_reboot();
+          else std::_Exit(0);
 - delay: 1600ms
-- if:
-    condition:
-      lambda: return std::string(getenv("GLAZE_TEST_RECOVERY")) == "restart";
-    then:
-      - lambda: |-
-          const auto &pending = glaze::station.pending_save();
-          const bool setup = getenv("GLAZE_TEST_CREATE") != nullptr;
-          if (!pending.active() || pending.setup() != setup || pending.displayed_g != (setup ? 600 : 225) ||
-              glaze::station.selected() || glaze::station.reading.gross(millis()) != 0 ||
-              !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(143);
-          if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot(setup ? "create-restarted" : "save-restarted");
-          std::_Exit(0);
 - lambda: |-
-    if (glaze::station.pending_save().active() || glaze::station.state != glaze::State::Idle) exit(144);
-    if (std::string(getenv("GLAZE_TEST_RECOVERY")) == "clean") {
-      if (!glaze::station.notice.empty()) exit(145);
-      exit(0);
-    }
-    const bool setup = getenv("GLAZE_TEST_CREATE") != nullptr;
-    if (glaze::station.notice.find(setup ? "Created jar #" : "Saved jar #") != 0) exit(146);
-    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot(setup ? "create-confirmed" : "save-confirmed");
+    if (glaze::station.pending_save().active() || glaze::station.state != glaze::State::Idle ||
+        glaze::station.selected() || !glaze::station.notice.empty() ||
+        !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(143);
+    if (getenv("ESPHOME_SNAPSHOT_DIR"))
+      id(panel).take_snapshot(getenv("GLAZE_TEST_CREATE") ? "create-restarted" : "save-restarted");
     exit(0);

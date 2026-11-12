@@ -2,6 +2,7 @@ packages:
   simulator: !include ../simulator.yaml
 
 esphome:
+  includes: [<filesystem>]
   name: glaze-studio-test
   on_boot:
     priority: -110
@@ -16,8 +17,8 @@ esphome:
           then: !include calibration-persistence.yaml
       - if:
           condition:
-            lambda: return getenv("GLAZE_TEST_RECOVERY") != nullptr;
-          then: !include recovery.yaml
+            lambda: return getenv("GLAZE_TEST_INTERRUPTION") != nullptr;
+          then: !include interrupted-save.yaml
       - lambda: |-
           if (getenv("GLAZE_TEST_DISPLAY_RESTART"))
             exit(glaze::display_power.brightness() == 60 && glaze::display_power.timeout_option() == 4 && id(platform_calibration)[0] == 600 ? 0 : 60);

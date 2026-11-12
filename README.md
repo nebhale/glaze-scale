@@ -49,10 +49,13 @@ Open its dropdown to link an untagged jar or choose **New jar...**. Choose a
 glaze, optionally select a container preset, enter a location or tap a matching
 suggestion, and enter the cost in USD. **Create** links the tag and
 records the first reading. **New glaze...** opens glaze creation.
-**Save** and **New jar → Create** share one pending request in flash. You can lift
-the jar or restart the scale while it awaits confirmation. The scale retries
-the original jar and weight with the same request ID. The large number stays
-live, and the status line shows the weight being saved. Another save becomes
+**Save** and **New jar → Create** keep one pending request in RAM. While the
+scale is powered, you can lift or replace the jar and it will keep retrying the
+original weight with the same request ID. Restarting or unplugging the scale
+discards the pending request. If the scale restarts before confirmation, check
+Manager before submitting again. It may already have recorded the weigh-in or
+created the jar. The large number stays live, and the status line shows the
+weight being saved. Another save becomes
 available once Manager confirms or rejects the pending one. A changed jar
 requires review before a new submission.
 
