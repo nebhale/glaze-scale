@@ -129,7 +129,7 @@ script:
           glaze::visible(id(manager_dialog), true);
   - id: retry_manager_connection
     then:
-      - lvgl.label.update: {id: manager_reason, text: "Checking connection…"}
+      - lvgl.label.update: {id: manager_reason, text: "Checking connection..."}
       - delay: 100ms
       - lambda: |-
           if (lv_screen_active() != id(weigh_page)->obj || lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
