@@ -1,0 +1,37 @@
+tests/studio.yaml
+  s_bf5d8793b3bf4a::t_cdafcd18c50cae 170-172,175-176
+studio/pending_save.h
+  s_bf5d8793b3bf4a::t_5222ad008ea15c 45
+scripts/simulate.py
+  s_bf5d8793b3bf4a::t_cdafcd18c50cae 106-108,112-113,135-146,197-200
+studio/view.h
+  s_bf5d8793b3bf4a::t_5222ad008ea15c 363,365,367,369
+  s_bf5d8793b3bf4a::t_1d066acd9794d5 177
+README.md
+  s_bf5d8793b3bf4a::t_5222ad008ea15c 42-45
+tests/recovery.yaml
+  s_bf5d8793b3bf4a::t_cdafcd18c50cae 10-11
+tests/untagged.yaml
+  s_bf5d8793b3bf4a::t_cdafcd18c50cae 1-40
+studio/station.h
+  s_bf5d8793b3bf4a::t_5222ad008ea15c 36,119,147-150,185,195,206,236-245,248,254,261,267,285,292,312,329,344,361,423-426
+  s_bf5d8793b3bf4a::t_cdafcd18c50cae 175
+tests/maintenance.yaml
+  s_bf5d8793b3bf4a::t_5222ad008ea15c 74,93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "aef3719acb9b295977ce4d5a39cd9f127a1a535f",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
