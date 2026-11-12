@@ -1,0 +1,21 @@
+tests/calibration-recovery.yaml
+  s_bf5d8793b3bf4a::t_71c273689c33b4 25,34-35,46,50-51
+studio/display_power.h
+  s_bf5d8793b3bf4a::t_71c273689c33b4 54-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "1b1f81247c3e7987f0681a0f967067ecb4473153",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}

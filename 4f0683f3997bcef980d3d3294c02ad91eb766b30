@@ -1,0 +1,23 @@
+studio/manager.h
+  s_bf5d8793b3bf4a::t_2cf156e8145a14 4,64-65
+targets/wt32-sc01-plus.yaml
+  s_bf5d8793b3bf4a::t_2cf156e8145a14 57
+device.yaml
+  s_bf5d8793b3bf4a::t_2cf156e8145a14 17,19,61-66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "4f0683f3997bcef980d3d3294c02ad91eb766b30",
+  "prompts": {},
+  "sessions": {
+    "s_bf5d8793b3bf4a": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1acd5-6277-70f2-bbc3-1fe6a9e75f0d",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
