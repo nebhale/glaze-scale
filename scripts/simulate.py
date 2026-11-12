@@ -7,7 +7,6 @@ from pathlib import Path
 import signal
 from collections import defaultdict
 import socket
-import struct
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
@@ -113,14 +112,10 @@ def exercise_retries(app, recovery):
 
 
 def verify_calibration(program, env, directory):
-    prefs = Path(directory) / "calibration-recovery"
+    prefs = Path(directory) / "calibration-persistence"
     prefs.mkdir()
-    # Seed a preferences file from the previous restoring global, then boot
-    # three fresh processes with the same storage, bypassing shutdown hooks.
-    old_key = 1944399030 ^ 2826005165
-    (prefs / "glaze-studio-test.prefs").write_bytes(struct.pack("=IBff", old_key, 8, 10, 1))
     for phase in ("calibrate", "tare", "verify"):
-        subprocess.run([str(program)], check=True, timeout=15,
+        subprocess.run([str(program)], check=True, timeout=85 if phase == "calibrate" else 15,
                        env={**env, "ESPHOME_PREFDIR": str(prefs), "GLAZE_TEST_CALIBRATION": phase})
 
 

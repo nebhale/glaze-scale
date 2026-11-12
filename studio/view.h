@@ -80,18 +80,13 @@ class View {
     shown_gross_ = station.reading.gross(now);
     dirty_ = false;
   }
-  void tare() {
+  void tare(Calibration &calibration) {
     auto mean = station.reading.settled_mean(esphome::millis());
-    if (!mean || !steady_home_reading() || platform_calibration.counts_per_gram == 0) return;
-    auto next = platform_calibration;
-    next.zero += *mean * next.counts_per_gram;
-    constexpr auto save_error = "Could not save tare. Tap Tare to retry.";
-    if (!platform_calibration.save(next)) {
-      station.notice = save_error;
-      render(esphome::millis());
-      return;
-    }
-    if (station.notice == save_error) station.notice.clear();
+    auto &[zero, counts_per_gram] = calibration;
+    if (!mean || !steady_home_reading() || counts_per_gram == 0) return;
+    const float next_zero = zero + *mean * counts_per_gram;
+    if (!std::isfinite(next_zero)) return;
+    zero = next_zero;
     station.platform_tared();
     render(esphome::millis());
   }

@@ -56,13 +56,13 @@
 - lambda: |-
     lv_textarea_set_text(id(settings_value), "100");
     lv_obj_send_event(id(settings_continue), LV_EVENT_CLICKED, nullptr);
-    if (lv_screen_active() != id(device_menu)->obj || glaze::platform_calibration.counts_per_gram != 2) exit(40);
+    if (lv_screen_active() != id(device_menu)->obj || id(platform_calibration)[1] != 2) exit(40);
     lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
 - delay: 1200ms
 - lambda: |-
     if (strcmp(lv_label_get_text(id(amount)), "100 g")) exit(41);
     lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
-    if (glaze::platform_calibration.zero != 200 || glaze::platform_calibration.counts_per_gram != 2) exit(42);
+    if (id(platform_calibration)[0] != 200 || id(platform_calibration)[1] != 2) exit(42);
 - delay: 1s
 - lambda: |-
     if (strcmp(lv_label_get_text(id(amount)), "0 g") || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(71);
@@ -108,7 +108,7 @@
         !lv_obj_has_state(id(home_tare), LV_STATE_DISABLED) || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(43);
     lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
     lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
-    if (glaze::platform_calibration.zero != 200 || glaze::station.state != glaze::State::Ready) exit(73);
+    if (id(platform_calibration)[0] != 200 || glaze::station.state != glaze::State::Ready) exit(73);
     if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-settling");
 - delay: 900ms
 - lambda: |-
@@ -184,4 +184,4 @@
         strcmp(lv_label_get_text(id(amount)), "450 g") || !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(139);
     // Restore the default input for the following NFC weigh-ins.
     id(simulated_load) = 0;
-    glaze::platform_calibration = {0, 1};
+    id(platform_calibration) = {0, 1};

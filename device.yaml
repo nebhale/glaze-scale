@@ -72,8 +72,8 @@ sensor:
       then:
         - lambda: |-
             glaze::device_calibrator.sample(x, millis());
-            const auto &cal = glaze::platform_calibration;
-            if (cal.counts_per_gram != 0) glaze::station.reading.sample((x - cal.zero) / cal.counts_per_gram, millis());
+            const auto &[zero, counts_per_gram] = id(platform_calibration);
+            if (counts_per_gram != 0) glaze::station.reading.sample((x - zero) / counts_per_gram, millis());
 
 script:
   - id: check_manager_on_connect
