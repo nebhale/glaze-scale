@@ -1,0 +1,91 @@
+# The fixture releases each HTTP response only after the UI has made progress.
+- wait_until:
+    condition:
+      lambda: return std::filesystem::exists(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "warm");
+    timeout: 3s
+- lambda: |-
+    if (!std::filesystem::exists(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "warm")) exit(161);
+    lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(device_menu)->obj) exit(162);
+    lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
+    std::filesystem::create_directory(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "warm-ok");
+    glaze::station.device = "network-test";
+    id(simulated_load) = 750;
+- delay: 1s
+- lambda: |-
+    auto *picker = id(jar_picker)->obj;
+    lv_dropdown_open(picker);
+    if (lv_dropdown_get_option_count(picker) < 6) exit(163);
+    lv_dropdown_set_selected(picker, 0);
+    lv_dropdown_close(picker);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (!glaze::station.manual || glaze::station.jar.number != 1) exit(164);
+- delay: 150ms
+- lambda: |-
+    lv_dropdown_open(id(jar_picker)->obj);
+    lv_dropdown_close(id(jar_picker)->obj);
+    lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+- wait_until:
+    condition:
+      lambda: return std::filesystem::exists(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "save");
+    timeout: 2s
+- lambda: |-
+    if (glaze::station.state != glaze::State::Pending) exit(165);
+    id(simulated_load) = 0;
+    lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
+    if (lv_screen_active() != id(device_menu)->obj) exit(166);
+    lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
+- delay: 950ms
+- lambda: |-
+    if (glaze::station.selected() || glaze::station.state != glaze::State::Pending ||
+        strcmp(lv_label_get_text(id(amount)), "0 g")) exit(167);
+    std::filesystem::create_directory(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "save-ok");
+- delay: 350ms
+- lambda: |-
+    if (glaze::station.pending_save().active() || glaze::station.notice != "Saved jar #1") exit(168);
+    glaze::station.tag("AABB11", millis());
+- wait_until:
+    condition:
+      lambda: return std::filesystem::exists(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "scan");
+    timeout: 2s
+- lambda: |-
+    glaze::station.tag("04A2B3C4D5E6F7", millis());
+    std::filesystem::create_directory(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "scan-ok");
+- delay: 450ms
+- lambda: |-
+    if (glaze::station.state != glaze::State::Ready || glaze::station.jar.number != 1) exit(169);
+    glaze::station.manager.check_connection();
+    glaze::station.manager.check_connection();
+- delay: 200ms
+- lambda: glaze::station.removed(millis());
+- delay: 850ms
+- lambda: |-
+    lv_dropdown_open(id(jar_picker)->obj);
+    if (lv_dropdown_get_option_count(id(jar_picker)->obj) != 10) exit(170);
+    std::filesystem::create_directory(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "refresh");
+    glaze::station.inventory.changed({glaze::List::Jars});
+- wait_until:
+    condition:
+      lambda: return !glaze::station.inventory.entry(glaze::List::Jars).loading;
+    timeout: 2s
+- lambda: |-
+    auto *picker = id(jar_picker)->obj;
+    if (lv_dropdown_get_option_count(picker) != 10) exit(171);
+    lv_dropdown_close(picker);
+    lv_dropdown_open(picker);
+    if (lv_dropdown_get_option_count(picker) != 9) exit(172);
+    lv_dropdown_set_selected(picker, 2);
+    lv_dropdown_close(picker);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+    if (glaze::station.jar.number != 3) exit(173);
+    id(simulated_load) = 780;
+- delay: 1s
+- lambda: |-
+    std::filesystem::create_directory(std::filesystem::path(getenv("GLAZE_TEST_NETWORK")) / "conflict");
+    lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
+- delay: 600ms
+- lambda: |-
+    if (glaze::station.selected() || glaze::station.pending_save().active() ||
+        glaze::station.notice.find("Jar changed") == std::string::npos) exit(174);
+    exit(0);

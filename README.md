@@ -35,6 +35,8 @@ Keep screen regions at fixed heights as the scale changes state. The main
 screen reserves space for jar identity, weight, stock level, and feedback so
 each appears in the same place during selection, weighing, saving, and removal.
 
+The scale loads the jar list and weighing details into RAM when Wi-Fi connects. Other lists load on first use. After one minute, opening a cached list refreshes it in the background. An open list keeps its rows in place until you close it. Glaze Manager 1.7.0 supplies jar details with the list.
+
 **Tare** commits the platform zero to flash once the reading settles. **Save**
 requires a settled weight and a selected jar. Choose a jar in the dropdown or
 place a jar with a known NFC tag on the scale to select it automatically. You

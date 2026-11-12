@@ -8,6 +8,10 @@ esphome:
     then:
       - if:
           condition:
+            lambda: return getenv("GLAZE_TEST_NETWORK") != nullptr;
+          then: !include network.yaml
+      - if:
+          condition:
             lambda: return getenv("GLAZE_TEST_CALIBRATION") != nullptr;
           then: !include calibration-recovery.yaml
       - if:

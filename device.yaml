@@ -81,7 +81,10 @@ script:
     then:
       # Let Wi-Fi finish its connection callback before starting TLS.
       - delay: 100ms
-      - lambda: glaze::station.manager.check_connection();
+      - lambda: |-
+          glaze::station.manager.check_connection([](bool ok) {
+            if (ok) glaze::station.inventory.open(glaze::List::Jars, true);
+          });
   - id: poll_nfc
     then:
       - lambda: id(show_nfc_status).execute(id(reader).is_failed(), id(reader).status_has_warning());
@@ -114,7 +117,7 @@ script:
       access_id: string
       access_secret: string
     then:
-      - lambda: glaze::station.manager.configure(id(glaze_http), origin, access_id, access_secret);
+      - lambda: glaze::station.manager.configure(origin, access_id, access_secret);
   - id: refresh_system_ip
     then:
       - lambda: |-

@@ -22,12 +22,16 @@ esphome:
   includes:
     - ui/palettes.h
     - studio/nfc_health.h
+    - studio/host_transport.cpp
+    - studio/transport.h
+    - studio/network_worker.h
     - studio/manager.h
     - studio/reading.h
     - studio/display_power.h
     - studio/storage_slot.h
     - studio/calibration.h
     - studio/pending_save.h
+    - studio/inventory.h
     - studio/station.h
     - studio/view.h
   on_boot:
@@ -69,6 +73,9 @@ http_request:
   timeout: 2s
 
 interval:
+  - interval: 10ms
+    then:
+      - lambda: glaze::station.manager.poll();
   - interval: 100ms
     then:
       - script.execute: poll_nfc
@@ -136,6 +143,11 @@ script:
               glaze::station.manager.status != glaze::ServiceStatus::Unavailable) return;
           if (id(connected_ssid).empty())
             glaze::label(id(manager_reason), "Reconnect Wi-Fi, then retry.");
-          else if (!glaze::station.manager.check_connection())
-            glaze::label(id(manager_reason), "Inventory is still unavailable. Try again.");
-          glaze::view.update_connections(!id(connected_ssid).empty());
+          else {
+            lv_obj_add_state(id(manager_recover), LV_STATE_DISABLED);
+            glaze::station.manager.check_connection([](bool ok) {
+              lv_obj_remove_state(id(manager_recover), LV_STATE_DISABLED);
+              if (!ok) glaze::label(id(manager_reason), "Inventory is still unavailable. Try again.");
+              glaze::view.update_connections(!id(connected_ssid).empty());
+            });
+          }
