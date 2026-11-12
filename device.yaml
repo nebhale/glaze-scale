@@ -13,6 +13,15 @@ esp32:
       CONFIG_MBEDTLS_SSL_KEEP_PEER_CERTIFICATE: y
       CONFIG_MBEDTLS_SSL_PROTO_TLS1_3: y
 
+time:
+  - platform: sntp
+    id: scale_clock
+    timezone: America/Los_Angeles
+    on_time_sync:
+      - lambda: |-
+          ESP_LOGI("clock", "SNTP synchronized: %s Pacific",
+                   id(scale_clock).now().strftime("%Y-%m-%d %H:%M:%S").c_str());
+
 wifi:
   id: studio_wifi
   reboot_timeout: 0s
