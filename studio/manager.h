@@ -1,14 +1,12 @@
 #pragma once
 
-#include "esphome/components/http_request/http_request.h"
-#include "esphome/core/log.h"
+#include "network_worker.h"
+#include <algorithm>
+#include <deque>
+#include <functional>
+#include <vector>
 
 namespace glaze {
-
-struct Reply {
-  int code = 0;
-  JsonDocument data;
-};
 
 inline std::string url_part(const std::string &value) {
   static constexpr char hex[] = "0123456789ABCDEF";
@@ -30,73 +28,92 @@ class Manager {
  public:
   ServiceStatus status = ServiceStatus::Unchecked;
 
+  using Done = std::function<void(const Reply &)>;
+
   void network_changed() {
-    // Verify prior successes on the new network. Keep a failed service retryable.
+    if (connection_) connection_ = std::make_shared<Connection>(*connection_);
+    ++generation_;
     if (status == ServiceStatus::Available) status = ServiceStatus::Unchecked;
   }
 
-  void configure(esphome::http_request::HttpRequestComponent *http, std::string origin,
-                 const std::string &access_id = {}, const std::string &access_secret = {}) {
-    // The device sends credentials only to its flash-configured HTTPS origin.
-    const bool tls = origin.compare(0, 8, "https://") == 0;
-    if (!tls) {
+  void configure(std::string origin, const std::string &id = {}, const std::string &secret = {}) {
 #ifdef USE_HOST
-      if (origin.compare(0, 17, "http://127.0.0.1:") != 0 || !access_id.empty() || !access_secret.empty()) return;
+    if (origin.rfind("http://127.0.0.1:", 0) != 0 || !id.empty() || !secret.empty()) return;
 #else
-      return;
+    if (origin.rfind("https://", 0) != 0 || id.empty() != secret.empty()) return;
 #endif
-    }
     auto authority = origin.substr(origin.find("://") + 3);
     if (authority.empty() || authority.find_first_of("/?#@\r\n ") != std::string::npos) return;
-    http_ = http;
-    base_ = origin + "/api/v1";
-    headers_ = {{"Content-Type", "application/json"}};
-    if (!access_id.empty() && !access_secret.empty()) {
-      headers_.push_back({"CF-Access-Client-Id", access_id});
-      headers_.push_back({"CF-Access-Client-Secret", access_secret});
-    }
+    connection_ = std::make_shared<Connection>(Connection{origin, id, secret});
+    ++generation_;
   }
 
-  bool check_connection() {
-    auto reply = call("GET", "/device/options/jars");
-    const bool available = reply.code == 200 && reply.data["items"].is<JsonArray>();
-    status = available ? ServiceStatus::Available : ServiceStatus::Unavailable;
-    if (available) ESP_LOGI("manager", "Connected to Glaze Manager");
-    else ESP_LOGW("manager", "Inventory check failed (response code %d)", reply.code);
-    return available;
+  void request(std::string method, std::string path, std::string body, Done done, bool background = false) {
+    if (method == "GET") {
+      auto combine = [&](Task &t) {
+        if (t.generation != generation_ || t.job.method != "GET" || t.job.path != path) return false;
+        t.callbacks.push_back(std::move(done));
+        if (!background) t.background = false;
+        return true;
+      };
+      if (active_ && combine(*active_)) return;
+      for (auto &task : queue_) if (combine(task)) return;
+    } else ++generation_;  // A read requested after a write must observe that write.
+    queue_.push_back({{connection_, std::move(method), std::move(path), std::move(body)},
+                      {std::move(done)}, generation_, background});
   }
 
-  Reply call(const char *method, const std::string &path, const std::string &body = {}) {
-    Reply reply;
-    status = ServiceStatus::Unavailable;
-    if (!http_) return reply;
-    auto response = http_->start((base_ + path).c_str(), method, body, headers_);
-    if (!response) return reply;
-    reply.code = response->status_code;
-    // Binding returns a full web jar. The subsequent lookup reads its device projection.
-    if ((reply.code == 200 || reply.code == 201) && strcmp(method, "PUT") != 0) {
-      size_t limit = path.find("/device/jars/") == 0 ? 8192 : 4096;
-      if (response->content_length > limit) reply.code = 0;
-      else {
-        std::string bytes(response->content_length ? response->content_length : limit + 1, '\0');
-        auto read = esphome::http_request::http_read_fully(response.get(),
-            reinterpret_cast<uint8_t *>(bytes.data()), bytes.size(), 256, http_->get_timeout());
-        auto size = response->get_bytes_read();
-        if (read.status != esphome::http_request::HttpReadStatus::OK || !response->is_read_complete() ||
-            size > limit || deserializeJson(reply.data, bytes.data(), size)) reply.code = 0;
-      }
+  void separate_reads() { ++generation_; }
+  void promote(const std::string &prefix) {
+    for (auto &task : queue_) if (task.job.path.rfind(prefix, 0) == 0) task.background = false;
+  }
+
+  void check_connection(std::function<void(bool)> done = {}) {
+    request("GET", "/device/options/jars", {}, [this, done, connection = connection_](const Reply &r) {
+      if (connection != connection_) { if (done) done(false); return; }
+      bool ok = r.code == 200 && r.data["items"].is<JsonArrayConst>();
+      status = ok ? ServiceStatus::Available : ServiceStatus::Unavailable;
+      if (ok) ESP_LOGI("manager", "Connected to Glaze Manager");
+      else ESP_LOGW("manager", "Inventory check failed (response code %d)", r.code);
+      if (done) done(ok);
+    });
+  }
+
+  void poll() {
+    if (active_) {
+      auto reply = worker_.take();
+      if (!reply) return;
+      finish(*reply);
     }
-    response->end();
-    // A missing jar, edit conflict, or rejected input still came from the API.
-    if (reply.code == 200 || reply.code == 201 || reply.code == 404 || reply.code == 409 || reply.code == 422)
-      status = ServiceStatus::Available;
-    return reply;
+    if (queue_.empty()) return;
+    auto next = std::find_if(queue_.begin(), queue_.end(), [](const Task &t) { return !t.background; });
+    if (next == queue_.end()) next = queue_.begin();
+    active_ = std::move(*next);
+    queue_.erase(next);
+    if (!worker_.start(active_->job)) finish({});
   }
 
  private:
-  esphome::http_request::HttpRequestComponent *http_ = nullptr;
-  std::string base_;
-  std::vector<esphome::http_request::Header> headers_;
+  struct Task {
+    Request job;
+    std::vector<Done> callbacks;
+    uint32_t generation;
+    bool background;
+  };
+  void finish(const Reply &r) {
+    auto task = std::move(*active_);
+    active_.reset();
+    if (task.job.connection == connection_) {
+      status = (r.code == 200 || r.code == 201 || r.code == 404 || r.code == 409 || r.code == 422)
+                  ? ServiceStatus::Available : ServiceStatus::Unavailable;
+    }
+    for (auto &done : task.callbacks) done(r);
+  }
+  std::shared_ptr<const Connection> connection_;
+  uint32_t generation_ = 0;
+  NetworkWorker worker_;
+  std::deque<Task> queue_;
+  std::optional<Task> active_;
 };
 
 inline std::string json_body(const JsonDocument &data) {

@@ -2,42 +2,15 @@
 
 #include <cinttypes>
 
-#include "manager.h"
+#include "inventory.h"
 #include "pending_save.h"
 #include "reading.h"
 
 namespace glaze {
 
-inline std::string field(JsonVariantConst data, const char *key) {
-  return data[key] | "";
-}
-
-inline Grams weight(JsonVariantConst data, const char *key) {
-  if (data[key].is<double>()) return data[key].as<double>();
-  return {};
-}
-
-struct Jar {
-  std::string id, name, maker, code, tag;
-  int number = 0, revision = 0;
-  bool archived = false;
-  Grams tare, baseline, threshold;
-
-  static Jar read(JsonVariantConst j) {
-    return {field(j, "container_id"), field(j, "glaze_name"), field(j, "manufacturer_name"),
-            field(j, "product_code"), field(j, "tag_uid"),
-            j["number"] | 0, j["revision"] | 0, j["archived"] | false, weight(j, "tare_g"),
-            weight(j, "full_weight_g"), weight(j, "threshold_g")};
-  }
-  bool valid() const { return !id.empty() && number > 0 && !name.empty() && revision > 0; }
-};
-
 enum class Screen { Home, Setup, NewContainer, NewGlaze, NewManufacturer, Pick, Edit, Link };
 enum class State { Idle, Lookup, Unknown, ManualSetup, Ready, Pending, Saved };
-enum class List { Manufacturers, Glazes, Presets, Locations, Cones, ProductLines, Classifications };
 enum class Edit { Location, Cost, GlazeName, ContainerName, ContainerWeight, ProductCode, Cone, ProductLine, ManufacturerName };
-struct Option { std::string id, label, code; };
-
 struct GlazeDraft {
   std::string name, code, cone, line;
   Option manufacturer, classification;
@@ -57,6 +30,7 @@ struct GlazeDraft {
 class Station {
  public:
   Manager manager;
+  Inventory inventory{manager};
   Reading reading;
   Screen screen = Screen::Home;
   State state = State::Idle;
@@ -71,7 +45,8 @@ class Station {
   std::string manufacturer_name;
   std::string location, cost, container_name, container_weight;
   std::vector<Option> options;
-  std::optional<int> catalog_offset;
+  bool catalog_loading = false;
+  bool form_busy = false;
   bool catalog_failed = false;
   int saved_number = 0;
   Grams saved_gross;
@@ -129,16 +104,22 @@ class Station {
     clear_selection();
     if (number.empty()) return;
     const auto gross = reading.gross(esphome::millis());
-    auto r = manager.call("GET", "/device/jars/" + url_part(number));
-    auto detail = Jar::read(r.data.as<JsonVariantConst>());
-    if (r.code != 200 || !detail.valid() || detail.archived || std::to_string(detail.number) != number) {
-      notice = "Jar unavailable. Choose a jar again.";
-      return;
-    }
-    jar = detail;
-    manual = true;
-    manual_load_seen_ = gross >= load_detection_g;
-    state = State::Ready;
+    auto select = [this, number, gross](const Jar &detail) {
+      if (!detail.valid() || detail.archived || std::to_string(detail.number) != number) {
+        notice = "Jar unavailable. Choose a jar again.";
+        return;
+      }
+      jar = detail;
+      manual = true;
+      manual_load_seen_ = gross >= load_detection_g || reading.gross(esphome::millis()) >= load_detection_g;
+      state = State::Ready;
+    };
+    if (const Jar *cached = inventory.jar(number)) { select(*cached); return; }
+    const auto session = session_;
+    manager.request("GET", "/device/jars/" + url_part(number), {}, [this, session, select](const Reply &r) {
+      if (session == session_ && !present && state == State::Idle)
+        select(r.code == 200 ? Jar::read(r.data.as<JsonVariantConst>()) : Jar{});
+    });
   }
   bool can_weigh(uint32_t now) const {
     auto gross = reading.gross(now);
@@ -182,8 +163,8 @@ class Station {
       return;
     }
     if (!present && !manual) return;
-    if (catalog_offset && can_edit_setup() && (screen == Screen::Pick || screen == Screen::Edit)) {
-      load_catalog_page();
+    if (catalog_loading && can_edit_setup() && (screen == Screen::Pick || screen == Screen::Edit)) {
+      show_catalog();
     }
     if (!due(now)) return;
     bool awaiting_binding = state == State::Unknown && screen == Screen::Home;
@@ -234,6 +215,7 @@ class Station {
 
   void begin_setup() {
     if (screen != Screen::Home || state == State::Pending) return;
+    ++navigation_;
     if (uid.empty()) {
       clear_selection();
       manual = true;
@@ -264,22 +246,28 @@ class Station {
     notice.clear();
   }
   void create_manufacturer() {
-    if (!can_edit_setup() || screen != Screen::NewManufacturer || manufacturer_name.empty()) return;
+    if (form_busy || !can_edit_setup() || screen != Screen::NewManufacturer || manufacturer_name.empty()) return;
     JsonDocument data;
     data["name"] = manufacturer_name;
-    auto r = manager.call("POST", "/manufacturers", json_body(data));
-    auto result = r.data.as<JsonVariantConst>();
-    auto id = field(result, "id"), name = field(result, "name");
-    if (r.code == 201 && !id.empty() && !name.empty()) {
-      draft.manufacturer = {id, name, ""};
-      screen = Screen::NewGlaze;
-      notice.clear();
-    } else if (r.code == 0 || r.code >= 500 || r.code == 201) {
-      pick(List::Manufacturers);
-      notice = "Check the list for your manufacturer.";
-    } else {
-      notice = "Could not create the manufacturer.";
-    }
+    form_busy = true;
+    const auto session = session_, navigation = navigation_;
+    manager.request("POST", "/manufacturers", json_body(data), [this, session, navigation](const Reply &r) {
+      form_busy = false;
+      inventory.changed({List::Manufacturers});
+      if (session != session_ || navigation != navigation_ || !can_edit_setup()) return;
+      auto result = r.data.as<JsonVariantConst>();
+      auto id = field(result, "id"), name = field(result, "name");
+      if (r.code == 201 && !id.empty() && !name.empty()) {
+        draft.manufacturer = {id, name, ""};
+        screen = Screen::NewGlaze;
+        notice.clear();
+      } else if (r.code == 0 || r.code >= 500 || r.code == 201) {
+        pick(List::Manufacturers, true);
+        notice = "Check the list for your manufacturer.";
+      } else {
+        notice = "Could not create the manufacturer.";
+      }
+    });
   }
   void begin_container() {
     if (!can_edit_setup() || screen != Screen::Pick || list != List::Presets) return;
@@ -289,27 +277,35 @@ class Station {
     screen = Screen::NewContainer;
   }
   void create_container() {
-    if (!can_edit_setup() || screen != Screen::NewContainer || container_name.empty()) return;
+    if (form_busy || !can_edit_setup() || screen != Screen::NewContainer || container_name.empty()) return;
     JsonDocument data;
     data["name"] = container_name;
     if (!container_weight.empty()) data["tare_g"] = std::strtol(container_weight.c_str(), nullptr, 10);
-    auto r = manager.call("POST", "/presets", json_body(data));
-    auto result = r.data.as<JsonVariantConst>();
-    auto id = field(result, "id"), name = field(result, "name");
-    if (r.code == 201 && !id.empty() && !name.empty()) {
-      preset = {id, name, ""};
-      screen = Screen::Setup;
-      notice.clear();
-    } else if (r.code == 0 || r.code >= 500 || r.code == 201) {
-      // The write may have succeeded. Reload the catalog before offering another create.
-      pick(List::Presets);
-      notice = "Check the list for your container.";
-    } else {
-      notice = "Could not create the container.";
-    }
+    form_busy = true;
+    const auto session = session_, navigation = navigation_;
+    manager.request("POST", "/presets", json_body(data), [this, session, navigation](const Reply &r) {
+      form_busy = false;
+      inventory.changed({List::Presets});
+      if (session != session_ || navigation != navigation_ || !can_edit_setup()) return;
+      auto result = r.data.as<JsonVariantConst>();
+      auto id = field(result, "id"), name = field(result, "name");
+      if (r.code == 201 && !id.empty() && !name.empty()) {
+        preset = {id, name, ""};
+        screen = Screen::Setup;
+        notice.clear();
+      } else if (r.code == 0 || r.code >= 500 || r.code == 201) {
+        // The write may have succeeded. Reload the catalog before offering another create.
+        pick(List::Presets, true);
+        notice = "Check the list for your container.";
+      } else {
+        notice = "Could not create the container.";
+      }
+    });
   }
-  void pick(List kind) {
+  void pick(List kind, bool require_fresh = false) {
     if (!can_edit_setup()) return;
+    ++navigation_;
+    catalog_loading = false;
     list = kind;
     switch (kind) {
       case List::Locations: edit(Edit::Location); break;
@@ -322,8 +318,12 @@ class Station {
     catalog_failed = false;
     if (kind == List::Classifications) {
       options = {{"glaze", "Glaze", ""}, {"underglaze", "Underglaze", ""}, {"other", "Other", ""}};
-      catalog_offset.reset();
-    } else catalog_offset = 0;
+      catalog_loading = false;
+    } else {
+      const auto &e = inventory.open(kind);
+      if (e.current && !require_fresh) options = e.current->rows;
+      else catalog_loading = true;
+    }
   }
   void choose(size_t index) {
     if (!can_edit_setup() || screen != Screen::Pick || index >= options.size()) return;
@@ -342,7 +342,8 @@ class Station {
   }
   void edit(Edit kind) {
     if (!can_edit_setup()) return;
-    catalog_offset.reset();
+    catalog_loading = false;
+    ++navigation_;
     editor = kind;
     screen = Screen::Edit;
     notice.clear();
@@ -395,30 +396,40 @@ class Station {
   }
   void select_unlinked_jar(const std::string &number) {
     if (!present || state != State::Unknown || screen != Screen::Home) return;
-    auto r = manager.call("GET", "/device/jars/" + url_part(number));
-    candidate = Jar::read(r.data.as<JsonVariantConst>());
-    if (r.code != 200 || !candidate.valid() || candidate.archived || !candidate.tag.empty() ||
-        std::to_string(candidate.number) != number) {
-      notice = "Jar unavailable. Choose again.";
-      return;
-    }
-    screen = Screen::Link;
-    notice.clear();
+    const auto session = session_, choice = ++navigation_;
+    manager.request("GET", "/device/jars/" + url_part(number), {}, [this, number, session, choice](const Reply &r) {
+      if (session != session_ || choice != navigation_ || !present || state != State::Unknown || screen != Screen::Home) return;
+      candidate = Jar::read(r.data.as<JsonVariantConst>());
+      if (r.code != 200 || !candidate.valid() || candidate.archived || !candidate.tag.empty() ||
+          std::to_string(candidate.number) != number) {
+        notice = "Jar unavailable. Choose again.";
+        return;
+      }
+      screen = Screen::Link;
+      notice.clear();
+    });
   }
   void bind() {
-    if (!present || state != State::Unknown || !candidate.valid() || screen != Screen::Link) return;
+    if (form_busy || !present || state != State::Unknown || !candidate.valid() || screen != Screen::Link) return;
     JsonDocument data;
     data["container_id"] = candidate.id;
     data["expected_revision"] = candidate.revision;
     data["replace"] = false;
     data["move"] = false;
-    auto r = manager.call("PUT", "/tags/" + uid + "/binding", json_body(data));
-    refresh(r.code == 200 ? "Tag linked. Review the reading." :
-            r.code == 409 ? "Binding changed. Check the jar again." : "Checking tag after link attempt.");
+    form_busy = true;
+    const auto session = session_;
+    manager.request("PUT", "/tags/" + uid + "/binding", json_body(data), [this, session](const Reply &r) {
+      form_busy = false;
+      inventory.changed({List::Jars, List::Unlinked});
+      if (session != session_ || !present) return;
+      refresh(r.code == 200 ? "Tag linked. Review the reading." :
+              r.code == 409 ? "Binding changed. Check the jar again." : "Checking tag after link attempt.");
+    });
   }
   void back() {
+    ++navigation_;
     notice.clear();
-    catalog_offset.reset();
+    catalog_loading = false;
     switch (screen) {
       case Screen::Setup:
         if (state == State::ManualSetup) clear_selection();
@@ -442,25 +453,17 @@ class Station {
   }
 
  private:
-  void load_catalog_page() {
-    const char *paths[] = {"manufacturers", "glazes", "presets", "locations", "cones", "product-lines"};
-    auto path = std::string("/device/options/") + paths[static_cast<int>(list)] +
-                "?offset=" + std::to_string(*catalog_offset);
-    auto r = manager.call("GET", path);
-    auto items = r.data["items"].as<JsonArrayConst>();
-    auto next = r.data["next_offset"];
-    if (r.code != 200 || items.isNull() || (!next.isNull() && (!next.is<int>() || next.as<int>() <= *catalog_offset))) {
-      options.clear();
-      catalog_failed = true;
-      notice = screen == Screen::Edit ? "Suggestions unavailable" : "List unavailable";
-      catalog_offset.reset();
-      return;
-    }
-    for (auto item : items) options.push_back({field(item, "value"), field(item, "label"), field(item, "code")});
-    if (next.isNull()) catalog_offset.reset();
-    else catalog_offset = next.as<int>();
+  void show_catalog() {
+    const auto &entry = inventory.entry(list);
+    if (entry.loading) return;
+    catalog_loading = false;
+    catalog_failed = entry.failed || !entry.current;
+    if (catalog_failed) notice = screen == Screen::Edit ? "Suggestions unavailable" : "List unavailable";
+    else options = entry.current->rows;
   }
 
+  uint32_t session_ = 0, navigation_ = 0;
+  bool lookup_busy_ = false, submitting_ = false;
   uint32_t lost_at_ = 0, scheduled_ = 0;
   unsigned failures_ = 0;
   bool waiting_ = false, report_scan_ = false;
@@ -475,12 +478,14 @@ class Station {
     clear_selection();
   }
   void clear_selection() {
+    ++session_;
+    lookup_busy_ = false;
     manual = false;
     manual_load_seen_ = false;
     uid.clear();
     screen = Screen::Home;
     jar = {}; candidate = {}; draft = {}; selected_draft = {}; manufacturer_name.clear(); glaze = {}; preset = {};
-    location.clear(); cost.clear(); options.clear(); catalog_offset.reset(); catalog_failed = false;
+    location.clear(); cost.clear(); options.clear(); catalog_loading = false; catalog_failed = false;
     saved_gross.reset(); saved_number = 0;
     report_scan_ = false;
     if (pending_.active() || !slot_read_) {
@@ -503,7 +508,18 @@ class Station {
   void lookup() {
     JsonDocument scan;
     scan["uid"] = uid; scan["device_id"] = device;
-    auto r = report_scan_ ? manager.call("POST", "/scans", json_body(scan)) : manager.call("GET", "/tags/" + uid);
+    if (lookup_busy_) return;
+    lookup_busy_ = true;
+    const auto session = session_;
+    manager.request(report_scan_ ? "POST" : "GET", report_scan_ ? "/scans" : "/tags/" + uid,
+        report_scan_ ? json_body(scan) : "", [this, session](const Reply &r) {
+      if (session != session_) return;
+      lookup_busy_ = false;
+      if (!present || screen != Screen::Home || (state != State::Lookup && state != State::Unknown)) return;
+      accept_lookup(r);
+    });
+  }
+  void accept_lookup(const Reply &r) {
     auto root = r.data.as<JsonObjectConst>();
     if (r.code != 200 || field(root, "uid") != uid || root["container"].isUnbound() ||
         (!root["container"].isNull() && !root["container"].is<JsonObjectConst>())) {
@@ -522,22 +538,32 @@ class Station {
     failures_ = 0;
   }
   void refresh_jar() {
-    auto r = manager.call("GET", "/device/jars/" + std::to_string(jar.number));
-    if (r.code == 200) {
+    const auto session = session_;
+    manager.request("GET", "/device/jars/" + std::to_string(jar.number), {},
+        [this, session, id = jar.id, revision = jar.revision](const Reply &r) {
+      if (r.code != 200 || session != session_ || jar.id != id || jar.revision != revision ||
+          state == State::Pending || (!manual && !present)) return;
       auto detail = Jar::read(r.data.as<JsonVariantConst>());
-      if (!detail.valid() || detail.id != jar.id || (!manual && detail.tag != uid) || detail.revision != jar.revision) {
+      if (!detail.valid() || detail.id != id || (!manual && detail.tag != uid) || detail.revision != revision) {
         refresh("Jar changed. Review the new reading.");
         return;
       }
       jar = detail;
-    }
+    });
   }
   void submit() {
     if (!slot_written_) {
       slot_written_ = pending_.store();
       if (!slot_written_) { notice = "Cannot store save. Retrying."; backoff(); return; }
     }
-    auto r = manager.call("POST", pending_.path, pending_.body);
+    if (submitting_) return;
+    submitting_ = true;
+    manager.request("POST", pending_.path, pending_.body, [this](const Reply &r) {
+      submitting_ = false;
+      accept_submission(r);
+    });
+  }
+  void accept_submission(const Reply &r) {
     const bool setup = pending_.setup();
     const auto container_id = field(r.data.as<JsonVariantConst>(), "container_id");
     const bool confirmed = r.code == 200 && !field(r.data.as<JsonVariantConst>(), "measurement_id").empty() &&
@@ -549,6 +575,8 @@ class Station {
     if (!confirmed && !rejected) { notice = "Awaiting confirmation"; backoff(); return; }
     if (!PendingSave::erase()) { notice = "Cannot clear saved request. Retrying."; backoff(); return; }
 
+    if (setup) inventory.changed({List::Jars, List::Unlinked, List::Glazes, List::Locations, List::Cones, List::ProductLines});
+    else inventory.changed({List::Jars});
     const auto finished = std::move(pending_);
     pending_ = {};
     slot_written_ = false;

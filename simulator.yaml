@@ -32,7 +32,10 @@ script:
       - lambda: |-
           id(connected_ssid) = "Studio Wi-Fi";
           const char *origin = getenv("GLAZE_SIM_ORIGIN");
-          if (origin) glaze::station.manager.configure(id(glaze_http), origin);
+          if (origin) {
+            glaze::station.manager.configure(origin);
+            glaze::station.inventory.open(glaze::List::Jars, true);
+          }
 
   - id: refresh_system_ip
     then:

@@ -1,5 +1,6 @@
 """Run the native scale against a fresh, loopback-only Glaze Manager."""
 
+import asyncio
 import json
 import os
 from pathlib import Path
@@ -44,6 +45,12 @@ def seed(origin, jar_count=2):
     return jar["id"]
 
 
+async def archive_fixture_jar(origin, number):
+    jar = await asyncio.to_thread(request, origin, "GET", f"/device/jars/{number}")
+    await asyncio.to_thread(request, origin, "PATCH", f"/containers/{jar['container_id']}", {
+        "expected_revision": jar["revision"], "archived": True})
+
+
 def exercise_retries(app, recovery):
     """Drop the first committed receipt and inject one conflict before setup."""
     from starlette.responses import JSONResponse
@@ -55,6 +62,31 @@ def exercise_retries(app, recovery):
         path = req.url.path
         measurement = path.endswith("/measurements")
         setup = path.endswith("/jar-setups")
+        gate = recovery.get("network")
+        if gate is not None:
+            gate["calls"].append((req.method, path))
+            marker = None
+            if path == "/api/v1/device/options/jars" and req.query_params.get("details") == "true":
+                marker = "warm"
+            elif measurement and req.method == "POST":
+                marker = "save"
+            elif path.endswith("/scans") and (await req.json())["uid"] == "AABB11":
+                marker = "scan"
+            if marker and not (gate["dir"] / marker).exists():
+                (gate["dir"] / marker).touch()
+                for _ in range(180):
+                    if (gate["dir"] / (marker + "-ok")).exists():
+                        break
+                    await asyncio.sleep(0.01)
+                else:
+                    raise AssertionError(f"UI was blocked during {marker}")
+            if req.method == "GET" and path.endswith("/options/jars") and (gate["dir"] / "refresh").exists():
+                if not gate.get("archived_last"):
+                    gate["archived_last"] = True
+                    await archive_fixture_jar(gate["origin"], 9)
+            if measurement and (gate["dir"] / "conflict").exists():
+                await archive_fixture_jar(gate["origin"], 3)
+            return await call_next(req)
         if req.method != "POST" or not (measurement or setup):
             return await call_next(req)
         data = await req.json()
@@ -161,7 +193,8 @@ def main():
         sys.path.insert(0, str(MANAGER))
         from backend.app import app
 
-        test = sys.argv[1:] == ["--test"]
+        network_only = sys.argv[1:] == ["--test-network"]
+        test = network_only or sys.argv[1:] == ["--test"]
         recovery = {}
         attempts = exercise_retries(app, recovery) if test else {}
         sock.bind(("127.0.0.1", 0))
@@ -182,6 +215,25 @@ def main():
             if test:
                 env["SDL_VIDEODRIVER"] = "dummy"
                 env["ESPHOME_PREFDIR"] = directory
+            if network_only:
+                gate_dir = Path(directory) / "network"
+                gate_dir.mkdir()
+                gate = recovery["network"] = {"dir": gate_dir, "calls": [], "origin": origin}
+                subprocess.run([str(program)], check=True, timeout=20, env={
+                    **env, "GLAZE_TEST_NETWORK": str(gate_dir), "ESPHOME_PREFDIR": str(gate_dir)})
+                del recovery["network"]
+                calls = gate["calls"]
+                save_index = next(i for i, (method, path) in enumerate(calls) if path.endswith("/measurements") and method == "POST")
+                assert calls[:save_index] == [("GET", "/api/v1/device/options/jars")], calls
+                assert sum(method == "POST" and path.endswith("/measurements") for method, path in calls) == 2, calls
+                assert calls.count(("GET", "/api/v1/device/options/jars")) == 5, calls  # warm, save, two coalesced checks, external edit, conflict
+                path = f"/containers/{known_id}/measurements"
+                manual = next(x for x in request(origin, "GET", path) if x["device_id"] == "network-test")
+                assert manual["gross_g"] == 750
+                changed = request(origin, "GET", "/device/jars/3")
+                assert changed["archived"] and not request(origin, "GET", f"/containers/{changed['container_id']}/measurements")
+                print("Verified responsive reads and writes, cached selection, stable rows and conflict handling.")
+                return 0
             result = subprocess.run([str(program)], env=env, timeout=150 if test else None)
             if test and result.returncode == 0:
                 subprocess.run([str(program)], env={**env, "GLAZE_TEST_DISPLAY_RESTART": "1"},

@@ -101,21 +101,27 @@ class View {
   void load_jars() {
     if (!can_choose_jar() || refreshing_jar_list_) return;
     picker_uid_ = station.uid;
-    jar_numbers_.clear();
-    jar_options_.clear();
-    if (station.manual) add_jar_option("", "Clear selection");
-    next_jar_offset_ = 0;
-    lv_dropdown_set_options(w.jar_picker, "Loading jars...");
-    lv_dropdown_set_selected_highlight(w.jar_picker, false);
+    const auto &entry = station.inventory.open(picker_list());
+    waiting_for_jars_ = !entry.current;
+    if (entry.current) display_jars(entry);
+    else {
+      jar_numbers_.clear();
+      lv_dropdown_set_options(w.jar_picker, "Loading jars...");
+      lv_dropdown_set_selected_highlight(w.jar_picker, false);
+    }
   }
   void choose_jar() {
-    if (!can_choose_jar() || picker_uid_ != station.uid || !matches_screen() || next_jar_offset_) return;
+    if (!can_choose_jar() || picker_uid_ != station.uid || !matches_screen() || waiting_for_jars_) return;
     size_t i = lv_dropdown_get_selected(w.jar_picker);
     if (i >= jar_numbers_.size()) return;
     if (jar_numbers_[i] == "retry") lv_dropdown_open(w.jar_picker);
     else if (jar_numbers_[i] == "new") station.begin_setup();
     else if (station.state == State::Unknown) station.select_unlinked_jar(jar_numbers_[i]);
-    else station.select_jar(jar_numbers_[i]);
+    else {
+      station.select_jar(jar_numbers_[i]);
+      // Give LVGL the cached heading and reading before its next display refresh.
+      render(esphome::millis());
+    }
   }
   void menu_action() {
     if (!same_session()) return;
@@ -140,7 +146,7 @@ class View {
   std::string jar_options_, picker_uid_, suggestion_prefix_;
   size_t suggestion_count_ = 0;
   bool catalog_loading_ = false;
-  std::optional<int> next_jar_offset_;
+  bool waiting_for_jars_ = false;
   bool refreshing_jar_list_ = false;
   State shown_state_ = State::Idle;
   int shown_revision_ = 0, y_ = 0;
@@ -156,26 +162,16 @@ class View {
     jar_options_ += caption;
     jar_numbers_.push_back(number);
   }
-  void load_jar_page() {
-    const int offset = *next_jar_offset_;
-    const bool unlinked = station.state == State::Unknown;
-    const char *path = unlinked ? "/device/options/unlinked-jars?offset=" : "/device/options/jars?offset=";
-    auto reply = station.manager.call("GET", path + std::to_string(offset));
-    auto items = reply.data["items"].as<JsonArrayConst>();
-    auto next = reply.data["next_offset"];
-    if (reply.code != 200 || items.isNull() || (!next.isNull() && (!next.is<int>() || next.as<int>() <= offset))) {
-      jar_numbers_.clear();
-      jar_options_.clear();
-      add_jar_option("retry", "Jars unavailable. Retry");
-    } else {
-      for (auto item : items) add_jar_option(field(item, "value"), field(item, "label"));
-      if (!next.isNull()) {
-        next_jar_offset_ = next.as<int>();
-        return;
-      }
-    }
-    add_jar_option("new", unlinked ? "New jar..." : "Create jar...");
-    next_jar_offset_.reset();
+  List picker_list() const { return station.state == State::Unknown ? List::Unlinked : List::Jars; }
+  void display_jars(const CatalogEntry &entry) {
+    jar_numbers_.clear();
+    jar_options_.clear();
+    if (station.manual) add_jar_option("", "Clear selection");
+    if (entry.current) {
+      for (const auto &option : entry.current->rows) add_jar_option(option.id, option.label);
+    } else add_jar_option("retry", "Jars unavailable. Retry");
+    add_jar_option("new", picker_list() == List::Unlinked ? "New jar..." : "Create jar...");
+    waiting_for_jars_ = false;
     lv_dropdown_set_options(w.jar_picker, jar_options_.c_str());
     jar_options_.clear();
     auto selected = std::find(jar_numbers_.begin(), jar_numbers_.end(), std::to_string(station.jar.number));
@@ -266,8 +262,11 @@ class View {
     const bool show_picker = can_choose_jar();
     if ((!show_picker || picker_uid_ != s.uid) && lv_dropdown_is_open(w.jar_picker)) lv_dropdown_close(w.jar_picker);
     visible(w.jar_picker, show_picker);
-    if (!lv_dropdown_is_open(w.jar_picker)) next_jar_offset_.reset();
-    else if (next_jar_offset_) load_jar_page();
+    if (!lv_dropdown_is_open(w.jar_picker)) waiting_for_jars_ = false;
+    else if (waiting_for_jars_) {
+      const auto &entry = s.inventory.entry(picker_list());
+      if (!entry.loading) display_jars(entry);
+    }
     std::string basis;
     if (known) {
       auto starting = s.display_weight(s.jar.baseline);
@@ -364,12 +363,12 @@ class View {
     } else if (s.screen == Screen::NewGlaze) {
       button(w.menu_action, w.action_label, "Create", s.can_edit_setup() && s.draft.ready());
     } else if (s.screen == Screen::NewManufacturer) {
-      button(w.menu_action, w.action_label, "Create", s.can_edit_setup() && !s.manufacturer_name.empty());
+      button(w.menu_action, w.action_label, "Create", !s.form_busy && s.can_edit_setup() && !s.manufacturer_name.empty());
     } else if (s.screen == Screen::NewContainer) {
-      button(w.menu_action, w.action_label, "Create", s.can_edit_setup() && !s.container_name.empty());
-    } else if (s.screen == Screen::Link) button(w.menu_action, w.action_label, "Link", s.present);
+      button(w.menu_action, w.action_label, "Create", !s.form_busy && s.can_edit_setup() && !s.container_name.empty());
+    } else if (s.screen == Screen::Link) button(w.menu_action, w.action_label, "Link", s.present && !s.form_busy);
     else visible(w.menu_action, false);
-    const bool loading = s.catalog_offset.has_value();
+    const bool loading = s.catalog_loading;
     if (!dirty_ && loading == catalog_loading_) return;
     catalog_loading_ = loading;
     visible(w.link_card, s.screen == Screen::Link);
