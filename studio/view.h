@@ -105,7 +105,7 @@ class View {
     jar_options_.clear();
     if (station.manual) add_jar_option("", "Clear selection");
     next_jar_offset_ = 0;
-    lv_dropdown_set_options(w.jar_picker, "Loading jars…");
+    lv_dropdown_set_options(w.jar_picker, "Loading jars...");
     lv_dropdown_set_selected_highlight(w.jar_picker, false);
   }
   void choose_jar() {
@@ -405,7 +405,7 @@ class View {
     } else if (s.screen == Screen::Pick) {
       const char *titles[] = {"Manufacturer", "Glaze", "Container", "Location", "Cone", "Product line", "Classification"};
       label(w.menu_title, titles[static_cast<int>(s.list)]);
-      if (loading) line("Loading…");
+      if (loading) line("Loading...");
       else if (s.catalog_failed) row("Retry", Row::Reload);
       else {
         if (s.list == List::Presets && !s.preset.id.empty()) row("Clear selection", Row::ClearPreset);
