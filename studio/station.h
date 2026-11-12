@@ -3,7 +3,6 @@
 #include <cinttypes>
 
 #include "inventory.h"
-#include "pending_save.h"
 #include "reading.h"
 
 namespace glaze {
@@ -25,6 +24,16 @@ struct GlazeDraft {
     if (!line.empty()) out["product_line"] = line;
     if (!classification.id.empty()) out["classification"] = classification.id;
   }
+};
+
+struct PendingSave {
+  std::string path, body, name, tag;
+  int number = 0;
+  int displayed_g = 0;
+  int gross_g = 0;
+
+  bool setup() const { return path == "/device/jar-setups"; }
+  bool active() const { return !path.empty(); }
 };
 
 class Station {
@@ -51,21 +60,6 @@ class Station {
   int saved_number = 0;
   Grams saved_gross;
   std::string device;
-
-  void restore_save() {
-    slot_read_ = pending_.restore();
-    if (!slot_read_) {
-      state = State::Pending;
-      notice = "Cannot read saved request";
-      backoff();
-      return;
-    }
-    slot_written_ = pending_.active();
-    state = slot_written_ ? State::Pending : (present ? State::Lookup : State::Idle);
-    notice = slot_written_ ? "Awaiting confirmation" : "";
-    failures_ = 0;
-    waiting_ = false;
-  }
 
   const PendingSave &pending_save() const { return pending_; }
 
@@ -157,9 +151,7 @@ class Station {
     }
     if (!present && !uid.empty() && now - lost_at_ >= 650) clear();
     if (state == State::Pending) {
-      if (!due(now)) return;
-      if (!slot_read_) restore_save();
-      else submit();
+      if (due(now)) submit();
       return;
     }
     if (!present && !manual) return;
@@ -172,7 +164,7 @@ class Station {
   }
 
   void confirm(uint32_t now) {
-    if (!slot_read_ || pending_.active() || !can_weigh(now)) return;
+    if (pending_.active() || !can_weigh(now)) return;
     bool setup = screen == Screen::Setup && can_create(now);
     if (!setup && (screen != Screen::Home || !can_save(now))) return;
     JsonDocument data;
@@ -204,11 +196,9 @@ class Station {
     pending_.tag = uid;
     pending_.gross_g = data["gross_g"].as<int>();
     pending_.displayed_g = setup ? pending_.gross_g : static_cast<int>(*display_weight(pending_.gross_g));
-    // The request ID is durable before the first POST, including a retry after power loss.
-    slot_written_ = pending_.store();
     state = State::Pending;
     screen = Screen::Home;
-    notice = slot_written_ ? "Awaiting confirmation" : "Cannot store save. Retrying.";
+    notice = "Awaiting confirmation";
     waiting_ = false;
     failures_ = 0;
   }
@@ -469,7 +459,6 @@ class Station {
   bool waiting_ = false, report_scan_ = false;
   bool manual_load_seen_ = false;
   PendingSave pending_;
-  bool slot_read_ = false, slot_written_ = false;
   bool due(uint32_t now) const { return !waiting_ || static_cast<int32_t>(now - scheduled_) >= 0; }
   void after(uint32_t delay_ms) { scheduled_ = esphome::millis() + delay_ms; waiting_ = true; }
   void backoff() { after(1000u << std::min(failures_, 3u)); if (failures_ < 3) ++failures_; }
@@ -488,7 +477,7 @@ class Station {
     location.clear(); cost.clear(); options.clear(); catalog_loading = false; catalog_failed = false;
     saved_gross.reset(); saved_number = 0;
     report_scan_ = false;
-    if (pending_.active() || !slot_read_) {
+    if (pending_.active()) {
       state = State::Pending;
     } else {
       state = State::Idle;
@@ -552,10 +541,6 @@ class Station {
     });
   }
   void submit() {
-    if (!slot_written_) {
-      slot_written_ = pending_.store();
-      if (!slot_written_) { notice = "Cannot store save. Retrying."; backoff(); return; }
-    }
     if (submitting_) return;
     submitting_ = true;
     manager.request("POST", pending_.path, pending_.body, [this](const Reply &r) {
@@ -570,16 +555,14 @@ class Station {
         !container_id.empty() && (r.data["revision"] | 0) > 0 &&
         (setup ? (r.data["number"] | 0) > 0 : pending_.path == "/containers/" + url_part(container_id) + "/measurements") &&
         weight(r.data["stock"], "gross_g") == pending_.gross_g;
-    // Only an explicit API rejection or a matching receipt releases the slot.
+    // Only an explicit API rejection or a matching receipt finishes the pending request.
     const bool rejected = r.code == 400 || r.code == 404 || r.code == 409 || r.code == 410 || r.code == 422;
     if (!confirmed && !rejected) { notice = "Awaiting confirmation"; backoff(); return; }
-    if (!PendingSave::erase()) { notice = "Cannot clear saved request. Retrying."; backoff(); return; }
 
     if (setup) inventory.changed({List::Jars, List::Unlinked, List::Glazes, List::Locations, List::Cones, List::ProductLines});
     else inventory.changed({List::Jars});
     const auto finished = std::move(pending_);
     pending_ = {};
-    slot_written_ = false;
     failures_ = 0; waiting_ = false;
     const bool same_jar = manual || (present && uid == finished.tag);
     const int number = setup && confirmed ? r.data["number"].as<int>() : finished.number;
