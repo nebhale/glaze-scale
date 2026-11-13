@@ -45,7 +45,7 @@ esphome:
           glaze::station.device = App.get_name().c_str();
           glaze::apply_palette(glaze::production_palette, id(page_style), id(panel_style), id(muted_style),
               id(accent_style), id(warning_style), id(primary_style), id(key_style), id(track_style));
-          glaze::view.attach({id(weigh_page)->obj, id(menu_page)->obj, id(edit_page)->obj, id(cost_page)->obj, id(weight_page)->obj,
+          glaze::view.attach({id(weigh_page)->obj, id(menu_page)->obj, id(link_page)->obj, id(edit_page)->obj, id(cost_page)->obj, id(weight_page)->obj,
               id(wifi_indicator), id(home_wifi), id(wifi_warning), id(home_service), id(service_icon), id(service_warning),
               id(amount), id(weight_basis),
               id(condition_label), id(fill_level), id(home_tare), id(home_save), id(jar_picker)->obj,
@@ -53,9 +53,8 @@ esphome:
               {id(new_glaze_page)->obj, id(new_glaze_create), id(new_glaze_notice)},
               {id(new_manufacturer_page)->obj, id(new_manufacturer_create), id(new_manufacturer_notice)},
               {id(new_container_page)->obj, id(new_container_create), id(new_container_notice)},
-              id(menu_title), id(menu_body), id(menu_action),
-              id(menu_action_text), id(edit_title), id(edit_context), id(edit_value), id(location_matches),
-              id(link_card), {id(jar_title), id(identity), id(maker_label)}, {id(link_title), id(link_number), id(link_maker)},
+              id(menu_title), id(menu_body), id(edit_title), id(edit_context), id(edit_value), id(location_matches),
+              id(link_action), id(link_notice), {id(jar_title), id(identity), id(maker_label)}, {id(link_title), id(link_number), id(link_maker)},
               id(panel_style), id(control_corners)});
       - lvgl.widget.refresh: nfc_indicator
       - lambda: glaze::view.update_connections(!id(connected_ssid).empty());

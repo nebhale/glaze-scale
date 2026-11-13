@@ -1,0 +1,32 @@
+id: link_page
+styles: page_style
+widgets:
+  - label: {x: 60, y: 14, width: 412, text_font: montserrat_24, long_mode: DOT, text: Link to jar}
+  - obj:
+      x: "${screen_inset}"
+      y: 56
+      width: "${screen_content_width}"
+      height: 74
+      styles: [panel_style, card_corners]
+      scrollable: false
+      widgets:
+        - !include
+          file: jar-heading.yaml
+          vars: {title_id: link_title, number_id: link_number, maker_id: link_maker}
+  - label: {id: link_notice, x: "${screen_inset}", y: 142, width: "${screen_content_width}", text: ""}
+  - button:
+      <<: !include back-button.yaml
+      id: link_back
+      on_click:
+        - lambda: glaze::view.back();
+  - button:
+      id: link_action
+      x: 168
+      y: 268
+      width: 304
+      height: 44
+      styles: primary_style
+      on_click:
+        - lambda: glaze::view.link();
+      widgets:
+        - label: {align: CENTER, text: Link}

@@ -3,8 +3,21 @@
 - lambda: |-
     if (lv_screen_active() != id(weigh_page)->obj || lv_obj_has_state(id(home_tare), LV_STATE_DISABLED) ||
         !lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(32);
+    glaze::view.needs_calibration = true;
     lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
-    if (lv_screen_active() != id(device_menu)->obj) exit(33);
+    if (lv_screen_active() != id(device_menu)->obj || lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED) ||
+        strcmp(lv_label_get_text(id(calibration_status)), "Calibration needed")) exit(33);
+    lv_obj_send_event(id(calibrate_key), LV_EVENT_CLICKED, nullptr);
+    glaze::station.tag("ABCDEF12", millis());
+- delay: 250ms
+- lambda: |-
+    if (lv_screen_active() != id(device_menu)->obj || !lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED) ||
+        strcmp(lv_label_get_text(id(calibration_status)), "Remove jar to calibrate")) exit(33);
+    glaze::station.removed(millis());
+- delay: 900ms
+- lambda: |-
+    if (lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED) ||
+        strcmp(lv_label_get_text(id(calibration_status)), "Calibration needed")) exit(33);
 - delay: 200ms
 - lambda: |-
     lv_obj_send_event(id(wifi_key), LV_EVENT_CLICKED, nullptr);
@@ -92,7 +105,14 @@
 - lambda: |-
     if (strcmp(lv_textarea_get_text(id(reference_grams)), "100")) exit(40);
     lv_obj_send_event(id(reference_calibrate), LV_EVENT_CLICKED, nullptr);
-    if (lv_screen_active() != id(device_menu)->obj || id(platform_calibration)[1] != 2) exit(40);
+    if (lv_screen_active() != id(device_menu)->obj || id(platform_calibration)[1] != 2 ||
+        strcmp(lv_label_get_text(id(calibration_status)), "Calibrated")) exit(40);
+- delay: 250ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(calibration_status)), "Calibrated")) exit(40);
+    lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
+    lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
+    if (strcmp(lv_label_get_text(id(calibration_status)), "Calibrate") || lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED)) exit(40);
     lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
 - delay: 1200ms
 - lambda: |-
