@@ -142,7 +142,9 @@ script:
           wifi_scan_config_t scan{};
           scan.coex_background_scan = true;
           const auto err = esp_wifi_scan_start(&scan, false);
-          if (err != ESP_OK) ESP_LOGD("wifi_picker", "Scan deferred: %s", esp_err_to_name(err));
+          if (err != ESP_OK) {
+            ESP_LOGD("wifi_picker", "Scan deferred: %s", esp_err_to_name(err));
+          }
       # Coalesce repeated taps while the driver scans the 2.4 GHz channels.
       - delay: 3s
   - id: refresh_networks
