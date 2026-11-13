@@ -60,8 +60,8 @@ pn532_i2c:
   update_interval: 250ms
   on_tag:
     then:
+      - script.execute: wake_display
       - lambda: |-
-          glaze::display_power.activity();
           glaze::station.tag(x, millis());
   on_tag_removed:
     then:
@@ -80,6 +80,11 @@ sensor:
             const auto &[zero, counts_per_gram] = id(platform_calibration);
             if (counts_per_gram != 0) glaze::station.reading.sample((x - zero) / counts_per_gram, millis());
 
+button:
+  - platform: restart
+    id: restart_scale
+    internal: true
+
 script:
   - id: check_manager_on_connect
     mode: restart
@@ -97,18 +102,14 @@ script:
     then:
       - lambda: |-
           if (!id(reader).is_failed() && id(reader).status_has_warning()) id(reader).update();
-  - id: restart_scale
+  - id: set_backlight
+    parameters: {level: int}
     then:
-      - lambda: App.safe_reboot();
-  - id: init_display_power
-    then:
-      - lambda: |-
-          glaze::display_power.begin([](int level) {
-            auto call = id(backlight).make_call();
-            call.set_state(level > 0);
-            if (level > 0) call.set_brightness(level / 100.0f);
-            call.set_transition_length(0).set_save(false).perform();
-          });
+      - light.control:
+          id: backlight
+          state: !lambda return level > 0;
+          brightness: !lambda return level / 100.0f;
+          transition_length: 0s
   - id: configure_manager
     then:
       - script.execute:

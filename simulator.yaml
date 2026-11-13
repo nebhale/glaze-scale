@@ -1,6 +1,11 @@
 esphome:
   includes:
     - <esphome/components/host/core.h>
+  on_boot:
+    priority: -101
+    then:
+      # Simulate the panel backlight above the dropdowns on LVGL's top layer.
+      - lambda: lv_obj_set_parent(id(simulated_shade), lv_layer_sys());
   name: glaze-scale-sim
   friendly_name: Glaze Scale
 
@@ -12,6 +17,29 @@ display:
   - id: !extend panel
     snapshot_key: SDLK_F12
 
+lvgl:
+  top_layer:
+    widgets:
+      - obj:
+          id: simulated_shade
+          width: 100%
+          height: 100%
+          bg_color: 0
+          bg_opa: TRANSP
+          border_width: 0
+          radius: 0
+          clickable: false
+          scrollable: false
+
+button:
+  - platform: template
+    id: restart_scale
+    internal: true
+    on_press:
+      - lambda: |-
+          esphome::host::arm_reexec(esphome::host::get_exe_path());
+          App.safe_reboot();
+
 script:
   - id: poll_nfc
     then:
@@ -19,14 +47,18 @@ script:
   - id: retry_nfc_read
     then:
       - lambda: id(sim_nfc_read_error) = false;
-  - id: restart_scale
+  - id: set_backlight
+    parameters: {level: int}
     then:
-      - lambda: |-
-          esphome::host::arm_reexec(esphome::host::get_exe_path());
-          App.safe_reboot();
-  - id: init_display_power
-    then:
-      - lambda: glaze::display_power.begin(nullptr);
+      - lvgl.widget.update:
+          id: simulated_shade
+          bg_opa: !lambda return (100 - level) * LV_OPA_COVER / 100;
+      - if:
+          condition:
+            lambda: return level == 0;
+          then:
+            # Draw black over open dropdowns before LVGL pauses the desktop display.
+            - lambda: lv_refr_now(nullptr);
   - id: configure_manager
     then:
       - lambda: |-
@@ -95,18 +127,18 @@ binary_sensor:
     id: known_jar
     key: SDLK_1
     on_press:
+      - script.execute: wake_display
       - lambda: |-
           id(simulated_load) = 756;
-          glaze::display_power.activity();
           glaze::station.tag("04A2B3C4D5E6F7", millis());
   - platform: sdl
     trigger_on_initial_state: true
     id: unknown_jar
     key: SDLK_2
     on_press:
+      - script.execute: wake_display
       - lambda: |-
           id(simulated_load) = 600;
-          glaze::display_power.activity();
           glaze::station.tag("04010203", millis());
   - platform: sdl
     trigger_on_initial_state: true
@@ -121,9 +153,9 @@ binary_sensor:
     id: below_tare
     key: SDLK_3
     on_press:
+      - script.execute: wake_display
       - lambda: |-
           id(simulated_load) = 224;
-          glaze::display_power.activity();
           glaze::station.tag("04A2B3C4D5E6F7", millis());
   - platform: sdl
     trigger_on_initial_state: true

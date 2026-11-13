@@ -17,11 +17,11 @@ struct NewForm {
 };
 
 struct Widgets {
-  lv_obj_t *home, *menu, *edit, *wifi_indicator, *wifi, *wifi_warning, *service, *service_icon, *service_warning, *manager_dialog;
+  lv_obj_t *home, *menu, *edit, *cost_page, *weight_page, *wifi_indicator, *wifi, *wifi_warning, *service, *service_icon, *service_warning;
   lv_obj_t *amount, *basis, *status, *bar;
   lv_obj_t *tare_button, *save_button, *jar_picker;
   NewForm new_jar, new_glaze, new_manufacturer, new_container;
-  lv_obj_t *menu_title, *body, *menu_action, *action_label, *edit_title, *edit_context, *edit_caption, *entry, *suggestions, *keys;
+  lv_obj_t *menu_title, *body, *menu_action, *action_label, *edit_title, *edit_context, *entry, *suggestions;
   lv_obj_t *link_card;
   JarHeading home_heading, link_heading;
   lv_style_t *panel, *control_corners;
@@ -57,14 +57,18 @@ class View {
     lv_obj_set_state(w.service_icon, LV_STATE_CHECKED, unavailable);
     visible(w.service_warning, unavailable);
     lv_obj_set_flag(w.service, LV_OBJ_FLAG_CLICKABLE, unavailable);
-    if (!unavailable || station.screen != Screen::Home || settings_open) visible(w.manager_dialog, false);
   }
   void render(uint32_t now) {
     if (!w.home || settings_open) return;
     const auto *form = current_form();
     bool entered = !previous_ || *previous_ != station.screen;
     if (entered) {
-      auto page = form ? form->page : station.screen == Screen::Home ? w.home : station.screen == Screen::Edit ? w.edit : w.menu;
+      auto *page = form ? form->page : station.screen == Screen::Home ? w.home : w.menu;
+      if (station.screen == Screen::Edit) {
+        if (station.editor == Edit::Cost) page = w.cost_page;
+        else if (station.editor == Edit::ContainerWeight) page = w.weight_page;
+        else page = w.edit;
+      }
       if (lv_screen_active() != page) lv_screen_load(page);
       previous_ = station.screen;
       dirty_ = true;
@@ -74,7 +78,9 @@ class View {
       visible(form->notice, !station.notice.empty());
       label(form->notice, station.notice);
     } else if (station.screen == Screen::Home) home(now);
-    else if (station.screen == Screen::Edit) render_edit(entered);
+    else if (station.screen == Screen::Edit) {
+      if (lv_screen_active() == w.edit) render_edit(entered);
+    }
     else menu();
     shown_jar_id_ = station.jar.id;
     shown_uid_ = station.uid;
@@ -133,8 +139,8 @@ class View {
   void pick(List list) { if (same_session()) station.pick(list); }
   void edit(Edit field) { if (same_session()) station.edit(field); }
   void back() { station.back(); dirty_ = true; }
-  void finish_edit() {
-    if (same_session()) station.entered(lv_textarea_get_text(w.entry));
+  void finish_edit(lv_obj_t *entry) {
+    if (same_session()) station.entered(lv_textarea_get_text(entry));
     dirty_ = true;
   }
  private:
@@ -422,44 +428,22 @@ class View {
   void render_edit(bool entered) {
     auto &s = station;
     const bool autocomplete = s.editor == Edit::Location || s.editor == Edit::Cone || s.editor == Edit::ProductLine;
-    const bool cost = s.editor == Edit::Cost;
-    const bool weight = s.editor == Edit::ContainerWeight;
-    const char *title = "", *caption = "", *value = "";
+    const char *title = "", *value = "";
     switch (s.editor) {
       case Edit::Location: title = "Location"; value = s.location.c_str(); break;
-      case Edit::Cost: title = "Cost"; caption = "$"; value = s.cost.c_str(); break;
       case Edit::GlazeName:
       case Edit::ManufacturerName: title = "Name"; break;
       case Edit::ProductCode: title = "Product code"; break;
       case Edit::Cone: title = "Cone"; break;
       case Edit::ProductLine: title = "Product line"; break;
       case Edit::ContainerName: title = "Name"; value = s.container_name.c_str(); break;
-      case Edit::ContainerWeight: title = "Weight in grams"; value = s.container_weight.c_str(); break;
+      default: return;
     }
     if (auto *text = s.draft_text(s.editor)) value = text->c_str();
     label(w.edit_title, title);
-    label(w.edit_caption, caption);
     label(w.edit_context, s.notice);
     visible(w.suggestions, autocomplete);
-    if (entered) {
-      int label_width = cost ? 24 : 0;
-      lv_obj_set_x(w.entry, lv_obj_get_x(w.suggestions) + label_width);
-      lv_obj_set_width(w.entry, lv_obj_get_width(w.suggestions) - label_width);
-      lv_textarea_set_accepted_chars_static(w.entry, cost ? "0123456789." : weight ? "0123456789" : nullptr);
-      lv_textarea_set_max_length(w.entry, weight ? 8 : 200);
-      lv_textarea_set_text(w.entry, value);
-      if (cost || weight) {
-        static const char *const decimal_keys[] = {"1", "2", "3", LV_SYMBOL_BACKSPACE, "\n",
-          "4", "5", "6", LV_SYMBOL_KEYBOARD, "\n", "7", "8", "9", LV_SYMBOL_OK, "\n", "0", ".", ""};
-        static const char *const whole_keys[] = {"1", "2", "3", LV_SYMBOL_BACKSPACE, "\n",
-          "4", "5", "6", LV_SYMBOL_KEYBOARD, "\n", "7", "8", "9", LV_SYMBOL_OK, "\n", "0", ""};
-        constexpr auto key = LV_BUTTONMATRIX_CTRL_WIDTH_1;
-        static const lv_buttonmatrix_ctrl_t widths[] = {key,key,key,key, key,key,key,key, key,key,key,key,
-          LV_BUTTONMATRIX_CTRL_WIDTH_2, LV_BUTTONMATRIX_CTRL_WIDTH_2};
-        lv_keyboard_set_map(w.keys, LV_KEYBOARD_MODE_USER_1, weight ? whole_keys : decimal_keys, widths);
-      }
-      lv_keyboard_set_mode(w.keys, (cost || weight) ? LV_KEYBOARD_MODE_USER_1 : LV_KEYBOARD_MODE_TEXT_LOWER);
-    }
+    if (entered) lv_textarea_set_text(w.entry, value);
     if (autocomplete) render_suggestions(entered);
   }
 

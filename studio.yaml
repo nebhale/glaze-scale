@@ -33,7 +33,6 @@ esphome:
     - studio/network_worker.h
     - studio/manager.h
     - studio/reading.h
-    - studio/display_power.h
     - studio/calibration.h
     - studio/inventory.h
     - studio/station.h
@@ -42,13 +41,12 @@ esphome:
     priority: -100
     then:
       - lambda: |-
-          lv_obj_remove_flag(id(nfc_indicator), LV_OBJ_FLAG_CLICKABLE);
           glaze::view.needs_calibration = id(platform_calibration)[1] == 0;
           glaze::station.device = App.get_name().c_str();
           glaze::apply_palette(glaze::production_palette, id(page_style), id(panel_style), id(muted_style),
               id(accent_style), id(warning_style), id(primary_style), id(key_style), id(track_style));
-          glaze::view.attach({id(weigh_page)->obj, id(menu_page)->obj, id(edit_page)->obj,
-              id(wifi_indicator), id(home_wifi), id(wifi_warning), id(home_service), id(service_icon), id(service_warning), id(manager_dialog),
+          glaze::view.attach({id(weigh_page)->obj, id(menu_page)->obj, id(edit_page)->obj, id(cost_page)->obj, id(weight_page)->obj,
+              id(wifi_indicator), id(home_wifi), id(wifi_warning), id(home_service), id(service_icon), id(service_warning),
               id(amount), id(weight_basis),
               id(condition_label), id(fill_level), id(home_tare), id(home_save), id(jar_picker)->obj,
               {id(new_jar_page)->obj, id(new_jar_create), id(new_jar_notice)},
@@ -56,12 +54,15 @@ esphome:
               {id(new_manufacturer_page)->obj, id(new_manufacturer_create), id(new_manufacturer_notice)},
               {id(new_container_page)->obj, id(new_container_create), id(new_container_notice)},
               id(menu_title), id(menu_body), id(menu_action),
-              id(menu_action_text), id(edit_title), id(edit_context), id(edit_caption), id(edit_value), id(location_matches), id(input_keys)->obj,
+              id(menu_action_text), id(edit_title), id(edit_context), id(edit_value), id(location_matches),
               id(link_card), {id(jar_title), id(identity), id(maker_label)}, {id(link_title), id(link_number), id(link_maker)},
               id(panel_style), id(control_corners)});
+      - lvgl.widget.refresh: nfc_indicator
       - lambda: glaze::view.update_connections(!id(connected_ssid).empty());
       - lvgl.page.show: weigh_page
-      - script.execute: init_display_power
+      - script.execute:
+          id: set_backlight
+          level: !lambda return id(display_brightness);
       - script.execute: configure_manager
 
 packages:
@@ -70,6 +71,7 @@ packages:
   new_forms: !include ui/new-forms.yaml
   settings: !include ui/device.yaml
   display_controls: !include ui/display.yaml
+  warnings: !include ui/warnings.yaml
 
 http_request:
   id: glaze_http
@@ -86,72 +88,15 @@ interval:
       - lambda: |-
           auto now = millis();
           const auto &reading = glaze::station.reading;
-          glaze::display_power.update(reading.stable(now) ? reading.gross(now) : glaze::Grams{});
+          // Removing a load resets the baseline. Only an increase wakes the screen.
+          static double previous_load = 0;
+          if (reading.stable(now)) {
+            const double load = *reading.gross(now);
+            if (std::abs(load - previous_load) >= glaze::load_detection_g) {
+              if (load > previous_load) id(wake_display).execute();
+              previous_load = load;
+            }
+          }
           glaze::station.tick(now);
           glaze::view.update_connections(!id(connected_ssid).empty());
           glaze::view.render(millis());
-
-
-script:
-  - id: show_nfc_status
-    parameters:
-      failed: bool
-      warning: bool
-    then:
-      - lambda: |-
-          const auto before = glaze::nfc.fault;
-          glaze::nfc.observe(failed, warning, millis());
-          if (failed || warning) glaze::station.removed(millis());
-          const auto fault = glaze::nfc.fault;
-          if (before == fault) return;
-          const bool unavailable = fault != glaze::NfcFault::None;
-          lv_obj_set_state(id(nfc_icon), LV_STATE_CHECKED, unavailable);
-          glaze::visible(id(nfc_warning), unavailable);
-          lv_obj_set_flag(id(nfc_indicator), LV_OBJ_FLAG_CLICKABLE, unavailable);
-          // A recovery or a different fault invalidates the offered action.
-          glaze::visible(id(nfc_dialog), false);
-  - id: open_nfc_warning
-    then:
-      - lambda: |-
-          if (glaze::nfc.fault == glaze::NfcFault::None) return;
-          const bool startup = glaze::nfc.fault == glaze::NfcFault::Startup;
-          glaze::label(id(nfc_reason), startup ? "The NFC reader did not start." : "The NFC reader is not responding.");
-          glaze::label(id(nfc_recover_label), startup ? "Restart scale" : "Retry read");
-          glaze::visible(id(nfc_dialog), true);
-  - id: recover_nfc
-    then:
-      - script.execute: poll_nfc
-      - lambda: |-
-          if (lv_obj_has_flag(id(nfc_dialog), LV_OBJ_FLAG_HIDDEN) || lv_screen_active() != id(weigh_page)->obj) return;
-          if (glaze::nfc.fault == glaze::NfcFault::Startup) {
-            id(restart_scale).execute();
-          } else if (glaze::nfc.fault == glaze::NfcFault::Read) {
-            id(retry_nfc_read).execute();
-            id(poll_nfc).execute();
-            if (glaze::nfc.fault == glaze::NfcFault::Read)
-              glaze::label(id(nfc_reason), "Still unavailable. Check reader power and wiring.");
-          }
-
-  - id: open_manager_warning
-    then:
-      - lambda: |-
-          if (glaze::station.manager.status != glaze::ServiceStatus::Unavailable) return;
-          glaze::label(id(manager_reason), id(connected_ssid).empty() ? "Reconnect Wi-Fi, then retry." : "The scale couldn't load the inventory.");
-          glaze::visible(id(manager_dialog), true);
-  - id: retry_manager_connection
-    then:
-      - lvgl.label.update: {id: manager_reason, text: "Checking connection..."}
-      - delay: 100ms
-      - lambda: |-
-          if (lv_screen_active() != id(weigh_page)->obj || lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
-              glaze::station.manager.status != glaze::ServiceStatus::Unavailable) return;
-          if (id(connected_ssid).empty())
-            glaze::label(id(manager_reason), "Reconnect Wi-Fi, then retry.");
-          else {
-            lv_obj_add_state(id(manager_recover), LV_STATE_DISABLED);
-            glaze::station.manager.check_connection([](bool ok) {
-              lv_obj_remove_state(id(manager_recover), LV_STATE_DISABLED);
-              if (!ok) glaze::label(id(manager_reason), "Inventory is still unavailable. Try again.");
-              glaze::view.update_connections(!id(connected_ssid).empty());
-            });
-          }

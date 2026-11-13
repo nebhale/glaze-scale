@@ -1,0 +1,108 @@
+script:
+  - id: show_nfc_status
+    parameters: {failed: bool, warning: bool}
+    then:
+      - if:
+          condition:
+            lambda: |-
+              const auto before = glaze::nfc.fault;
+              glaze::nfc.observe(failed, warning, millis());
+              if (failed || warning) glaze::station.removed(millis());
+              return before != glaze::nfc.fault;
+          then:
+            - lvgl.widget.refresh: [nfc_indicator, nfc_warning]
+            - lvgl.widget.update:
+                id: nfc_icon
+                state:
+                  checked: !lambda return glaze::nfc.fault != glaze::NfcFault::None;
+            - lvgl.widget.hide: nfc_dialog
+  - id: open_nfc_warning
+    then:
+      - if:
+          condition:
+            lambda: return glaze::nfc.fault != glaze::NfcFault::None;
+          then:
+            - if:
+                condition: &startup_fault
+                  lambda: return glaze::nfc.fault == glaze::NfcFault::Startup;
+                then:
+                  - lvgl.label.update: {id: nfc_reason, text: The NFC reader did not start.}
+                  - lvgl.label.update: {id: nfc_recover_label, text: Restart scale}
+                else:
+                  - lvgl.label.update: {id: nfc_reason, text: The NFC reader is not responding.}
+                  - lvgl.label.update: {id: nfc_recover_label, text: Retry read}
+            - lvgl.widget.show: nfc_dialog
+  - id: recover_nfc
+    then:
+      - script.execute: poll_nfc
+      - if:
+          condition:
+            lambda: return lv_obj_is_visible(id(nfc_dialog));
+          then:
+            - if:
+                condition: *startup_fault
+                then:
+                  - button.press: restart_scale
+                else:
+                  - script.execute: retry_nfc_read
+                  - script.execute: poll_nfc
+                  - if:
+                      condition:
+                        lambda: return glaze::nfc.fault == glaze::NfcFault::Read;
+                      then:
+                        - lvgl.label.update: {id: nfc_reason, text: Still unavailable. Check reader power and wiring.}
+
+  - id: open_manager_warning
+    then:
+      - if:
+          condition: &manager_unavailable
+            lambda: return glaze::station.manager.status == glaze::ServiceStatus::Unavailable;
+          then:
+            - if:
+                condition: &wifi_offline
+                  lambda: return id(connected_ssid).empty();
+                then:
+                  - lvgl.label.update: &offline_message {id: manager_reason, text: "Reconnect Wi-Fi, then retry."}
+                else:
+                  - lvgl.label.update: {id: manager_reason, text: "The scale couldn't load the inventory."}
+            - lvgl.widget.show: manager_dialog
+  - id: retry_manager_connection
+    then:
+      - if:
+          condition:
+            and:
+              - *manager_unavailable
+              - lambda: return lv_obj_is_visible(id(manager_dialog));
+          then:
+            - if:
+                condition: *wifi_offline
+                then:
+                  - lvgl.label.update: *offline_message
+                else:
+                  - lvgl.widget.disable: manager_recover
+                  - lvgl.label.update: {id: manager_reason, text: Checking connection...}
+                  - lambda: |-
+                      glaze::station.manager.check_connection([](bool ok) {
+                        id(manager_retry_result).execute(ok);
+                      });
+  - id: manager_retry_result
+    parameters: {success: bool}
+    then:
+      - lvgl.widget.enable: manager_recover
+      - if:
+          condition:
+            lambda: return success;
+          then:
+            - lvgl.widget.hide: manager_dialog
+          else:
+            - lvgl.label.update: {id: manager_reason, text: Inventory is still unavailable. Try again.}
+
+# Inventory reads can also recover the connection while its dialog is open.
+interval:
+  - interval: 100ms
+    then:
+      - if:
+          condition:
+            lambda: return glaze::station.manager.status != glaze::ServiceStatus::Unavailable && lv_obj_is_visible(id(manager_dialog));
+          then:
+            - lvgl.widget.hide: manager_dialog

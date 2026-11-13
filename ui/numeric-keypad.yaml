@@ -1,0 +1,16 @@
+id: ${keypad}
+align: BOTTOM_MID
+width: 480
+height: 184
+pad_all: "${screen_inset}"
+styles: page_style
+border_width: 0
+pad_row: 5
+pad_column: 5
+items: {styles: key_style, radius: "${keyboard_key_radius}"}
+on_click:
+  - lambda: |-
+      const char *key = lv_buttonmatrix_get_button_text(id(${keypad})->obj, x);
+      if (!key) return;
+      if (strcmp(key, LV_SYMBOL_BACKSPACE) == 0) lv_textarea_delete_char(id(${entry}));
+      else if ((key[0] >= '0' && key[0] <= '9') || key[0] == '.') lv_textarea_add_text(id(${entry}), key);

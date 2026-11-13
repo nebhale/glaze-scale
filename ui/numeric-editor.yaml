@@ -1,0 +1,45 @@
+id: ${field}_page
+styles: page_style
+on_load:
+  - lvgl.textarea.update:
+      id: ${field}_value
+      text: !lambda return glaze::station.${value};
+  - lvgl.label.update: {id: "${field}_notice", text: ""}
+widgets:
+  - label: {x: "${screen_inset}", y: 8, text_font: montserrat_24, text: "${title}"}
+  - label: {id: "${field}_notice", align: TOP_RIGHT, x: "-${screen_inset}", y: 12, width: 320, text_align: RIGHT, long_mode: DOT, styles: muted_style, text: ""}
+  - label: {x: "${screen_inset}", y: 54, text: "${prefix}"}
+  - textarea:
+      id: ${field}_value
+      x: ${left}
+      y: 42
+      width: ${width}
+      height: 44
+      styles: panel_style
+      pad_all: 8
+      one_line: true
+      accepted_chars: "${characters}"
+      max_length: ${length}
+      state: {focused: true}
+  - buttonmatrix:
+      <<: !include {file: numeric-keypad.yaml, vars: {keypad: "${field}_keys", entry: "${field}_value"}}
+      rows:
+        - buttons: [{text: "1"}, {text: "2"}, {text: "3"}, {text: "\uF55A"}]
+        - buttons:
+            - {text: "4"}
+            - {text: "5"}
+            - {text: "6"}
+            - text: "\uF11C"
+              on_click:
+                - lambda: glaze::view.back();
+        - buttons:
+            - {text: "7"}
+            - {text: "8"}
+            - {text: "9"}
+            - text: "\uF00C"
+              on_click:
+                - lambda: glaze::view.finish_edit(id(${field}_value));
+                - lvgl.label.update:
+                    id: ${field}_notice
+                    text: !lambda return glaze::station.notice;
+        - buttons: ${bottom_keys}
