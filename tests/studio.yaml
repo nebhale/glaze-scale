@@ -21,7 +21,7 @@ esphome:
           then: !include interrupted-save.yaml
       - lambda: |-
           if (getenv("GLAZE_TEST_DISPLAY_RESTART"))
-            exit(glaze::display_power.brightness() == 60 && glaze::display_power.timeout_option() == 4 && id(platform_calibration)[0] == 600 ? 0 : 60);
+            exit(id(display_brightness) == 60 && id(display_timeout_index) == 4 && id(platform_calibration)[0] == 600 ? 0 : 60);
       - lambda: |-
           for (auto *control : {id(home_save), id(back_key), id(wifi_key), id(nfc_recover), id(nfc_cancel),
                                 id(manager_recover), id(manager_cancel), id(edit_value), id(timeout_select)->obj,

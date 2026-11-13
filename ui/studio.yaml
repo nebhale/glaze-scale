@@ -1,6 +1,8 @@
 lvgl:
   pages:
     - id: weigh_page
+      on_unload:
+        - lvgl.widget.hide: [manager_dialog, nfc_dialog]
       styles: page_style
       widgets:
         - !include status-bar.yaml
@@ -179,12 +181,11 @@ lvgl:
       widgets:
         - label: {id: edit_title, x: "${screen_inset}", y: 8, text_font: montserrat_24, text: ""}
         - label: {id: edit_context, align: TOP_RIGHT, x: "-${screen_inset}", y: 12, width: 320, text_align: RIGHT, long_mode: DOT, styles: muted_style, text: ""}
-        - label: {id: edit_caption, x: "${screen_inset}", y: 54, text: ""}
         - textarea:
             id: edit_value
-            x: 108
+            x: "${screen_inset}"
             y: 42
-            width: 364
+            width: "${screen_content_width}"
             height: 44
             styles: panel_style
             pad_all: 8
@@ -213,6 +214,30 @@ lvgl:
             textarea: edit_value
             items: {styles: key_style}
             on_ready:
-              - lambda: glaze::view.finish_edit();
+              - lambda: glaze::view.finish_edit(id(edit_value));
             on_cancel:
               - lambda: glaze::view.back();
+    - !include
+      file: numeric-editor.yaml
+      vars:
+        field: cost
+        title: Cost
+        value: cost
+        prefix: "$"
+        left: 32
+        width: 440
+        characters: "0123456789."
+        length: 200
+        bottom_keys: [{text: "0", width: 2}, {text: ".", width: 2}]
+    - !include
+      file: numeric-editor.yaml
+      vars:
+        field: weight
+        title: Weight in grams
+        value: container_weight
+        prefix: ""
+        left: "${screen_inset}"
+        width: "${screen_content_width}"
+        characters: "0123456789"
+        length: 8
+        bottom_keys: [{text: "0", width: 2}]

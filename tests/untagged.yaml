@@ -54,6 +54,34 @@
 - delay: 200ms
 - lambda: |-
     if (lv_screen_active() != id(new_jar_page)->obj || strcmp(lv_label_get_text(id(jar_glaze_text)), "Mist Blue")) exit(159);
+    lv_obj_send_event(id(jar_cost), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (lv_screen_active() != id(cost_page)->obj) exit(160);
+    lv_textarea_set_text(id(cost_value), "12.345");
+- script.execute: {id: tap_screen, x: 415, y: 250}  # Confirm
+- script.wait: tap_screen
+- lambda: |-
+    if (lv_screen_active() != id(cost_page)->obj || !*lv_label_get_text(id(cost_notice))) exit(160);
+- script.execute: {id: tap_screen, x: 415, y: 162}  # Backspace
+- script.wait: tap_screen
+- script.execute: {id: tap_screen, x: 415, y: 250}
+- script.wait: tap_screen
+- lambda: |-
+    if (lv_screen_active() != id(new_jar_page)->obj || strcmp(lv_label_get_text(id(jar_cost_text)), "$12.34")) exit(160);
+    lv_obj_send_event(id(jar_cost), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (strcmp(lv_textarea_get_text(id(cost_value)), "12.34") || *lv_label_get_text(id(cost_notice))) exit(160);
+    lv_textarea_set_text(id(cost_value), "9");
+- script.execute: {id: tap_screen, x: 350, y: 292}  # Decimal point
+- script.wait: tap_screen
+- lambda: |-
+    if (strcmp(lv_textarea_get_text(id(cost_value)), "9.")) exit(160);
+- script.execute: {id: tap_screen, x: 415, y: 204}  # Cancel
+- script.wait: tap_screen
+- lambda: |-
+    if (glaze::station.cost != "12.34") exit(160);
     lv_obj_send_event(id(jar_container), LV_EVENT_CLICKED, nullptr);
 - delay: 400ms
 - lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), -1), LV_EVENT_CLICKED, nullptr);
@@ -68,6 +96,25 @@
 - delay: 200ms
 - lambda: |-
     if (strcmp(lv_label_get_text(id(container_name_text)), "Pint jar") || lv_obj_has_state(id(new_container_create), LV_STATE_DISABLED)) exit(159);
+    lv_obj_send_event(id(container_weight), LV_EVENT_CLICKED, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (lv_screen_active() != id(weight_page)->obj || lv_buttonmatrix_get_button_text(id(weight_keys)->obj, 13) != nullptr) exit(161);
+    lv_textarea_set_text(id(weight_value), "10000001");
+- script.execute: {id: tap_screen, x: 415, y: 250}
+- script.wait: tap_screen
+- lambda: |-
+    if (lv_screen_active() != id(weight_page)->obj || !*lv_label_get_text(id(weight_notice))) exit(161);
+    lv_textarea_set_text(id(weight_value), "");
+    lv_textarea_add_text(id(weight_value), ".");
+- script.execute: {id: tap_screen, x: 230, y: 292}  # Zero, the full-width bottom key
+- script.wait: tap_screen
+- lambda: |-
+    if (strcmp(lv_textarea_get_text(id(weight_value)), "0")) exit(161);
+- script.execute: {id: tap_screen, x: 415, y: 250}
+- script.wait: tap_screen
+- lambda: |-
+    if (lv_screen_active() != id(new_container_page)->obj || strcmp(lv_label_get_text(id(container_weight_text)), "0 g")) exit(161);
     lv_obj_send_event(id(new_container_create), LV_EVENT_CLICKED, nullptr);
 - delay: 400ms
 - lambda: |-

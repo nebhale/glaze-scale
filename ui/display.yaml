@@ -1,14 +1,44 @@
+globals:
+  - {id: display_brightness, type: int, restore_value: true, initial_value: '100'}
+  - {id: display_timeout_index, type: int, restore_value: true, initial_value: '2'}
+
 script:
+  - id: wake_display
+    then:
+      - if:
+          condition: lvgl.is_paused
+          then:
+            - lvgl.resume:
+          else:
+            - lambda: lv_display_trigger_activity(nullptr);
   - id: open_display
     then:
-      - lambda: |-
-          int brightness = glaze::display_power.brightness();
-          lv_slider_set_value(id(brightness_slider), brightness, LV_ANIM_OFF);
-          glaze::label(id(brightness_label), std::to_string(brightness) + "%");
-          lv_dropdown_set_selected(id(timeout_select)->obj, glaze::display_power.timeout_option());
+      - lvgl.slider.update:
+          id: brightness_slider
+          value: !lambda return id(display_brightness);
+          animated: false
+      - lvgl.label.update:
+          id: brightness_label
+          text: {format: "%d%%", args: [id(display_brightness)]}
+      - lvgl.dropdown.update:
+          id: timeout_select
+          selected_index: !lambda return id(display_timeout_index);
       - lvgl.page.show: display_settings
 
 lvgl:
+  id: scale_ui
+  resume_on_input: true
+  on_idle:
+    - timeout: !lambda |-
+        constexpr uint32_t seconds[] = {30, 60, 120, 300, 600};
+        return seconds[id(display_timeout_index)] * 1000;
+      then:
+        - script.execute: {id: set_backlight, level: 0}
+        - lvgl.pause:
+  on_resume:
+    - script.execute:
+        id: set_backlight
+        level: !lambda return id(display_brightness);
   pages:
     - id: display_settings
       styles: page_style
@@ -41,11 +71,13 @@ lvgl:
                   indicator: {styles: primary_style}
                   knob: {styles: primary_style, pad_all: 10}
                   on_value:
-                    - lambda: |-
-                        glaze::display_power.set_brightness(lv_slider_get_value(id(brightness_slider)));
-                        glaze::label(id(brightness_label), std::to_string(glaze::display_power.brightness()) + "%");
-                  on_release:
-                    - lambda: glaze::display_power.save();
+                    - globals.set: {id: display_brightness, value: !lambda return static_cast<int>(x);}
+                    - lvgl.label.update:
+                        id: brightness_label
+                        text: {format: "%d%%", args: [id(display_brightness)]}
+                    - script.execute:
+                        id: set_backlight
+                        level: !lambda return id(display_brightness);
         - label: {x: 20, y: 182, text: Turn screen off after}
         - dropdown:
             id: timeout_select
@@ -59,4 +91,4 @@ lvgl:
             options: ["30s", "1m", "2m", "5m", "10m"]
             dropdown_list: !include dropdown-list.yaml
             on_value:
-              - lambda: glaze::display_power.set_timeout(lv_dropdown_get_selected(id(timeout_select)->obj));
+              - globals.set: {id: display_timeout_index, value: !lambda return x;}

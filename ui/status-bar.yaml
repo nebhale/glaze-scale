@@ -19,9 +19,9 @@ obj:
           pad_all: 0
           pad_left: 4
           pad_right: 4
-          clickable: false
           layout: {type: FLEX, flex_flow: ROW, flex_align_cross: CENTER, flex_align_track: CENTER, pad_column: 4}
         id: home_service
+        clickable: false
         on_click:
           - script.execute: open_manager_warning
         widgets:
@@ -36,6 +36,7 @@ obj:
     - button:
         <<: *indicator_style
         id: nfc_indicator
+        clickable: !lambda return glaze::nfc.fault != glaze::NfcFault::None;
         on_click:
           - script.execute: open_nfc_warning
         widgets:
@@ -45,10 +46,11 @@ obj:
               image_recolor: 0xCFB7E0
               image_recolor_opa: COVER
               checked: {image_recolor: 0xFBBF24}
-          - label: {id: nfc_warning, styles: warning_style, hidden: true, text: Unavailable}
+          - label: {id: nfc_warning, styles: warning_style, hidden: !lambda return glaze::nfc.fault == glaze::NfcFault::None;, text: Unavailable}
     - button:
         <<: *indicator_style
         id: wifi_indicator
+        clickable: false
         on_click:
           - if:
               condition:

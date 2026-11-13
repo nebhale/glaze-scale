@@ -31,33 +31,43 @@
     lv_slider_set_value(id(brightness_slider), 60, LV_ANIM_OFF);
     lv_obj_send_event(id(brightness_slider), LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_send_event(id(brightness_slider), LV_EVENT_RELEASED, nullptr);
-    if (glaze::display_power.brightness() != 60) exit(48);
+    if (id(display_brightness) != 60) exit(48);
     lv_dropdown_set_selected(id(timeout_select)->obj, 0);
     lv_obj_send_event(id(timeout_select)->obj, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_send_event(id(display_back), LV_EVENT_CLICKED, nullptr);
-- delay: 30200ms
+- wait_until:
+    condition: lvgl.is_paused
+    timeout: 32s
 - lambda: |-
-    if (!glaze::display_power.asleep()) { ESP_LOGE("test", "Display did not time out"); exit(49); }
+    if (!id(scale_ui).is_paused()) { ESP_LOGE("test", "Display did not time out"); exit(49); }
     if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-screen-off");
 # The first tap on the System tile only wakes the screen.
 - script.execute: {id: tap_screen, x: 365, y: 242}
 - script.wait: tap_screen
 - lambda: |-
-    if (glaze::display_power.asleep() || lv_screen_active() != id(device_menu)->obj) exit(50);
-- delay: 30200ms
+    if (id(scale_ui).is_paused() || lv_screen_active() != id(device_menu)->obj) exit(50);
+- wait_until:
+    condition: lvgl.is_paused
+    timeout: 32s
 - lambda: |-
-    if (!glaze::display_power.asleep()) exit(51);
+    if (!id(scale_ui).is_paused()) exit(51);
+    id(simulated_load) += 1;  // Settled platform jitter must leave the screen asleep.
+- delay: 1s
+- lambda: |-
+    if (!id(scale_ui).is_paused()) exit(51);
     id(panel).process_key(SDLK_UP, true);
     id(panel).process_key(SDLK_UP, false);
 - delay: 1200ms
 - lambda: |-
-    if (glaze::display_power.asleep() || glaze::station.present) exit(52);
-- delay: 30200ms
+    if (id(scale_ui).is_paused() || glaze::station.present) exit(52);
+- wait_until:
+    condition: lvgl.is_paused
+    timeout: 32s
 - lambda: |-
-    if (!glaze::display_power.asleep()) { ESP_LOGE("test", "Stationary weight kept screen awake"); exit(53); }
+    if (!id(scale_ui).is_paused()) { ESP_LOGE("test", "Stationary weight kept screen awake"); exit(53); }
     id(panel).process_key(SDLK_2, true);
     id(panel).process_key(SDLK_2, false);
-    if (glaze::display_power.asleep()) { ESP_LOGE("test", "NFC failed to wake before next weight sample"); exit(54); }
+    if (id(scale_ui).is_paused()) { ESP_LOGE("test", "NFC failed to wake before next weight sample"); exit(54); }
     id(panel).process_key(SDLK_0, true);
     id(panel).process_key(SDLK_0, false);
     lv_obj_send_event(id(display_key), LV_EVENT_CLICKED, nullptr);
