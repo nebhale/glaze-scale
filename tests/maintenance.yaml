@@ -10,7 +10,18 @@
     lv_obj_send_event(id(wifi_key), LV_EVENT_CLICKED, nullptr);
     auto *picker = id(network_list)->obj;
     if (lv_screen_active() != id(networks_page)->obj || !id(chosen_ssid).empty() ||
-        strcmp(lv_dropdown_get_text(picker), "Choose a network") || lv_dropdown_get_selected_highlight(picker)) exit(35);
+        lv_dropdown_get_text(picker) || !lv_dropdown_get_selected_highlight(picker) ||
+        lv_dropdown_get_selected(picker) != 0) exit(35);
+    // Keep even a hidden current network selected by name as scan results change order.
+    id(show_network_list).execute({"Workshop"});
+    char ssid[33]{};
+    lv_dropdown_get_selected_str(picker, ssid, sizeof(ssid));
+    if (strcmp(ssid, "Studio Wi-Fi") || lv_dropdown_get_selected(picker) != 1) exit(35);
+    lv_dropdown_open(picker);
+    id(refresh_networks).execute();
+    if (lv_dropdown_get_selected(picker) != 1) exit(35);
+    lv_dropdown_close(picker);
+    id(refresh_networks).execute();
     // Tapping even the first (currently connected) SSID opens an empty password prompt.
     lv_dropdown_set_selected(picker, 0);
     lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
@@ -25,6 +36,12 @@
     lv_dropdown_set_selected(picker, 1);
     lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
     if (id(chosen_ssid) != "Workshop" || lv_keyboard_get_mode(id(wifi_keyboard)->obj) != LV_KEYBOARD_MODE_TEXT_LOWER) exit(63);
+    lv_obj_send_event(id(wifi_keyboard)->obj, LV_EVENT_CANCEL, nullptr);
+    lv_dropdown_get_selected_str(picker, ssid, sizeof(ssid));
+    if (lv_screen_active() != id(networks_page)->obj || id(connected_ssid) != "Studio Wi-Fi" ||
+        !id(chosen_ssid).empty() || lv_dropdown_get_text(picker) || strcmp(ssid, "Studio Wi-Fi")) exit(63);
+    lv_dropdown_set_selected(picker, 1);
+    lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_textarea_set_text(id(wifi_password), "wrong");
     lv_obj_send_event(id(wifi_connect), LV_EVENT_CLICKED, nullptr);
 - delay: 550ms
@@ -45,7 +62,11 @@
 - lambda: |-
     if (id(connected_ssid) != "Workshop" || *lv_textarea_get_text(id(wifi_password))) exit(38);
     lv_obj_send_event(id(wifi_key), LV_EVENT_CLICKED, nullptr);
-    if (!id(chosen_ssid).empty() || strcmp(lv_dropdown_get_text(id(network_list)->obj), "Choose a network")) exit(66);
+    char ssid[33]{};
+    auto *picker = id(network_list)->obj;
+    lv_dropdown_get_selected_str(picker, ssid, sizeof(ssid));
+    if (!id(chosen_ssid).empty() || lv_dropdown_get_text(picker) || strcmp(ssid, "Workshop") ||
+        !lv_dropdown_get_selected_highlight(picker)) exit(66);
     id(open_device_menu).execute();
     lv_obj_send_event(id(calibrate_key), LV_EVENT_CLICKED, nullptr);
     lv_obj_send_event(id(capture_empty_key), LV_EVENT_CLICKED, nullptr);

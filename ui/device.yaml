@@ -54,14 +54,8 @@ script:
   - id: open_networks
     then:
       - lambda: |-
-          auto *from = lv_screen_active();
-          if (from != id(wifi_password_page)->obj) id(wifi_from_home) = from == id(weigh_page)->obj;
+          id(wifi_from_home) = lv_screen_active() == id(weigh_page)->obj;
           glaze::view.settings_open = true;
-          id(chosen_ssid).clear();
-          // Use the dropdown as a menu. Only a row being touched should highlight.
-          lv_dropdown_set_selected_highlight(id(network_list)->obj, false);
-          lv_dropdown_set_selected(id(network_list)->obj, 0);
-          id(show_network_list).execute({});
       - lvgl.page.show: networks_page
       - script.execute: scan_wifi
   - id: show_network_list
@@ -74,19 +68,23 @@ script:
           if (lv_dropdown_is_open(picker)) return;
 
           const auto &connected = id(connected_ssid);
-          if (!connected.empty() && connected.find_first_of("\r\n") == std::string::npos &&
-              std::find(names.begin(), names.end(), connected) == names.end())
-            names.push_back(connected);  // A connected hidden network can be absent from the scan.
+          bool has_current = !connected.empty() && connected.find_first_of("\r\n") == std::string::npos;
+          auto current = std::find(names.begin(), names.end(), connected);
+          size_t selected = has_current ? current - names.begin() : 0;
+          if (has_current && current == names.end()) names.push_back(connected);  // Hidden or absent from this scan.
 
           std::string options;
           for (const auto &name : names) {
             if (!options.empty()) options += '\n';
             options += name;
           }
-          if (options != lv_dropdown_get_options(picker) || !lv_dropdown_get_text(picker)) {
-            lv_dropdown_set_options(picker, options.c_str());
-            lv_dropdown_set_text_static(picker, names.empty() ? "No networks available" : "Choose a network");
-          }
+          if (options != lv_dropdown_get_options(picker)) lv_dropdown_set_options(picker, options.c_str());
+          lv_dropdown_set_selected(picker, selected);
+          // A null override lets LVGL display the selected option itself.
+          const char *prompt = has_current ? nullptr : (names.empty() ? "No networks available" : "Choose a network");
+          if (lv_dropdown_get_text(picker) != prompt) lv_dropdown_set_text_static(picker, prompt);
+          if (lv_dropdown_get_selected_highlight(picker) != has_current)
+            lv_dropdown_set_selected_highlight(picker, has_current);
           lv_obj_set_state(picker, LV_STATE_DISABLED, names.empty());
   - id: wifi_result
     parameters:
@@ -207,6 +205,9 @@ lvgl:
           vars: {tile: system_key, title: System, subtitle: "Build information", subtitle_id: system_hint, icon: "\uF013", left: 244, top: 190, open: open_system}
     - id: networks_page
       styles: page_style
+      on_load:
+        - lambda: id(chosen_ssid).clear();
+        - script.execute: refresh_networks
       widgets:
         - label: {align: TOP_MID, y: 10, text_font: montserrat_24, text: Wi-Fi network}
         - button:

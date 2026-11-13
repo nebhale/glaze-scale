@@ -12,7 +12,8 @@
     lv_obj_send_event(id(wifi_indicator), LV_EVENT_CLICKED, nullptr);
     auto *picker = id(network_list)->obj;
     if (lv_screen_active() != id(networks_page)->obj || lv_obj_has_state(picker, LV_STATE_DISABLED) ||
-        lv_dropdown_get_option_count(picker) != 2 || !id(chosen_ssid).empty()) exit(102);
+        lv_dropdown_get_option_count(picker) != 2 || !id(chosen_ssid).empty() ||
+        lv_dropdown_get_selected_highlight(picker) || strcmp(lv_dropdown_get_text(picker), "Choose a network")) exit(102);
 - delay: 250ms
 - lambda: |-
     if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("wifi-picker");
