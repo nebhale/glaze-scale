@@ -72,7 +72,7 @@ Tap the gear to open **Settings** from the weighing screen. The red **×** retur
 
 | Tile | Controls |
 | --- | --- |
-| **Connection** | Pick a nearby Wi-Fi network, enter its password, and tap **Connect**. The password is visible as you type and the field clears when you connect or cancel. **Scan now** refreshes the list. The simulator offers **Workshop** with password `studio`. |
+| **Connection** | The picker shows the current network and scans nearby Wi-Fi on entry. Pick a network, enter its password, and tap **Connect** to switch. The password is visible as you type and the field clears when you connect or cancel. **Scan now** refreshes the list. The simulator offers **Workshop** with password `studio`. |
 | **Scale** | Calibrate with an empty platform and a known reference mass. In the simulator, press **0**, capture the empty platform, press **↑** ten times, wait a second, and enter **100** grams. |
 | **Display** | Adjust brightness from 10–100% and choose a screen-off delay of 30 seconds or 1, 2, 5, or 10 minutes. Defaults are 100% and 2 minutes. Both settings persist across restarts. |
 | **System** | View the current IP address, Glaze Scale software version, and ESPHome version. The scale version comes from `git describe --tags --always --dirty` at build time. |

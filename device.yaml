@@ -1,6 +1,11 @@
 esphome:
   name: glaze-scale
   friendly_name: Glaze Scale
+  includes: [<esp_wifi.h>]
+  on_boot:
+    priority: 300  # Retain all nearby SSIDs from ESPHome's initial connection scan.
+    then:
+      - lambda: id(studio_wifi).set_keep_scan_results(true);
 
 packages:
   hardware: !include targets/wt32-sc01-plus.yaml
@@ -131,8 +136,15 @@ script:
   - id: scan_wifi
     then:
       - lambda: |-
-          id(studio_wifi).set_keep_scan_results(true);
-          id(studio_wifi).start_scanning();
+          // ESPHome's start_scanning() starts AP selection and reconnects.
+          // Let its connection/roaming scan finish if it already owns the radio.
+          if (id(studio_wifi).is_roaming() || (!id(studio_wifi).is_connected() && !id(studio_wifi).is_ap_active())) return;
+          wifi_scan_config_t scan{};
+          scan.coex_background_scan = true;
+          const auto err = esp_wifi_scan_start(&scan, false);
+          if (err != ESP_OK) ESP_LOGD("wifi_picker", "Scan deferred: %s", esp_err_to_name(err));
+      # Coalesce repeated taps while the driver scans the 2.4 GHz channels.
+      - delay: 3s
   - id: refresh_networks
     then:
       - lambda: |-
