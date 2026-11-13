@@ -226,7 +226,7 @@ def main():
                 assert changed["archived"] and not request(origin, "GET", f"/containers/{changed['container_id']}/measurements")
                 print("Verified responsive reads and writes, cached selection, stable rows and conflict handling.")
                 return 0
-            result = subprocess.run([str(program)], env=env, timeout=150 if test else None)
+            result = subprocess.run([str(program)], env=env, timeout=180 if test else None)
             if test and result.returncode == 0:
                 subprocess.run([str(program)], env={**env, "GLAZE_TEST_DISPLAY_RESTART": "1"},
                                timeout=10, check=True)

@@ -34,6 +34,7 @@ scaffold: check-version
 	$(ESPHOME) run scaffold.yaml
 
 test-studio: check-version
+	SDL_VIDEODRIVER=dummy $(ESPHOME) run tests/nfc.yaml
 	$(ESPHOME) compile tests/studio.yaml
 	GLAZE_MANAGER_DIR="$(abspath $(GLAZE_MANAGER_DIR))" "$(MANAGER_PYTHON)" scripts/simulate.py --test
 	GLAZE_MANAGER_DIR="$(abspath $(GLAZE_MANAGER_DIR))" "$(MANAGER_PYTHON)" scripts/simulate.py --test-network

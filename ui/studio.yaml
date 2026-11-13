@@ -177,6 +177,8 @@ lvgl:
             widgets:
               - label: {id: menu_action_text, align: CENTER, text: ""}
     - id: edit_page
+      on_load:
+        - lvgl.keyboard.update: {id: input_keys, mode: TEXT_LOWER}
       styles: page_style
       widgets:
         - label: {id: edit_title, x: "${screen_inset}", y: 8, text_font: montserrat_24, text: ""}

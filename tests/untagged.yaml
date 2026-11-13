@@ -32,6 +32,7 @@
     lv_obj_send_event(id(manufacturer_name), LV_EVENT_CLICKED, nullptr);
 - delay: 200ms
 - lambda: |-
+    lv_keyboard_set_mode(id(input_keys)->obj, LV_KEYBOARD_MODE_TEXT_UPPER);
     lv_textarea_set_text(id(edit_value), "Studio");
     lv_obj_send_event(id(input_keys)->obj, LV_EVENT_READY, nullptr);
 - delay: 200ms
@@ -45,6 +46,7 @@
     lv_obj_send_event(id(glaze_name), LV_EVENT_CLICKED, nullptr);
 - delay: 200ms
 - lambda: |-
+    if (lv_keyboard_get_mode(id(input_keys)->obj) != LV_KEYBOARD_MODE_TEXT_LOWER) exit(158);
     lv_textarea_set_text(id(edit_value), "Mist Blue");
     lv_obj_send_event(id(input_keys)->obj, LV_EVENT_READY, nullptr);
 - delay: 200ms
