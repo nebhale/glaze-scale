@@ -13,17 +13,24 @@ globals:
 script:
   - id: open_device_menu
     then:
-      - lambda: |-
-          glaze::view.settings_open = true;
-          glaze::label(id(calibration_status), glaze::view.needs_calibration ?
-              "Calibration needed" : "Calibrate");
-          if (!id(wifi_connecting))
-            glaze::label(id(wifi_status), "Wi-Fi details");
-          lv_obj_set_state(id(wifi_key), LV_STATE_DISABLED, id(wifi_connecting));
-          lv_obj_set_state(id(calibrate_key), LV_STATE_DISABLED, glaze::station.state != glaze::State::Idle);
-          if (glaze::station.state != glaze::State::Idle)
-            glaze::label(id(calibration_status), "Remove jar to calibrate");
+      - script.execute: {id: refresh_calibration_tile, just_calibrated: false}
       - lvgl.page.show: device_menu
+  - id: refresh_calibration_tile
+    parameters: {just_calibrated: bool}
+    then:
+      - if:
+          condition:
+            lambda: return glaze::station.state != glaze::State::Idle;
+          then:
+            - lvgl.widget.disable: calibrate_key
+            - lvgl.label.update: {id: calibration_status, text: Remove jar to calibrate}
+          else:
+            - lvgl.widget.enable: calibrate_key
+            - lvgl.label.update:
+                id: calibration_status
+                text: !lambda |-
+                  if (just_calibrated) return std::string("Calibrated");
+                  return std::string(glaze::view.needs_calibration ? "Calibration needed" : "Calibrate");
   - id: close_device_menu
     then:
       - lambda: |-
@@ -136,8 +143,8 @@ script:
                   - lambda: |-
                       glaze::view.needs_calibration = false;
                       glaze::station.reading.reset();
-                  - script.execute: open_device_menu
-                  - lvgl.label.update: {id: calibration_status, text: Calibrated}
+                  - script.execute: {id: refresh_calibration_tile, just_calibrated: true}
+                  - lvgl.page.show: device_menu
                 else:
                   - lvgl.label.update: {id: reference_prompt, text: "Use a steady weight, 1 to 2000 g"}
 
@@ -161,11 +168,8 @@ interval:
           auto *page = lv_screen_active();
           bool jar_on_scale = glaze::station.state != glaze::State::Idle;
           if (page == id(device_menu)->obj) {
-            if (jar_on_scale != lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED)) {
-              lv_obj_set_state(id(calibrate_key), LV_STATE_DISABLED, jar_on_scale);
-              glaze::label(id(calibration_status), jar_on_scale ? "Remove jar to calibrate" :
-                  glaze::view.needs_calibration ? "Calibration needed" : "Calibrate");
-            }
+            if (jar_on_scale != lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED))
+              id(refresh_calibration_tile).execute(false);
           } else if (jar_on_scale) {
             if (page == id(calibrate_page)->obj || page == id(reference_weight_page)->obj)
               id(open_device_menu).execute();
@@ -175,6 +179,12 @@ lvgl:
   pages:
     - id: device_menu
       styles: page_style
+      on_load:
+        - lambda: |-
+            glaze::view.settings_open = true;
+            if (!id(wifi_connecting))
+              glaze::label(id(wifi_status), "Wi-Fi details");
+            lv_obj_set_state(id(wifi_key), LV_STATE_DISABLED, id(wifi_connecting));
       widgets:
         - label: {align: TOP_MID, y: 12, styles: accent_style, text_font: montserrat_18, text: Settings}
         - button:
@@ -196,7 +206,7 @@ lvgl:
           vars: {tile: wifi_key, title: Connection, subtitle: "Wi-Fi details", subtitle_id: wifi_status, icon: "\uF1EB", left: "${screen_inset}", top: 60, open: open_networks}
         - !include
           file: settings-tile.yaml
-          vars: {tile: calibrate_key, title: Scale, subtitle: "Calibrate", subtitle_id: calibration_status, icon: "\uF01C", left: 244, top: 60, open: open_calibration}
+          vars: {tile: calibrate_key, title: Scale, subtitle: "", subtitle_id: calibration_status, icon: "\uF01C", left: 244, top: 60, open: open_calibration}
         - !include
           file: settings-tile.yaml
           vars: {tile: display_key, title: Display, subtitle: "Brightness & timeout", subtitle_id: display_hint, icon: "\uF03E", left: "${screen_inset}", top: 190, open: open_display}

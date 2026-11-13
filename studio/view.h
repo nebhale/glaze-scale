@@ -17,12 +17,12 @@ struct NewForm {
 };
 
 struct Widgets {
-  lv_obj_t *home, *menu, *edit, *cost_page, *weight_page, *wifi_indicator, *wifi, *wifi_warning, *service, *service_icon, *service_warning;
+  lv_obj_t *home, *menu, *link_page, *edit, *cost_page, *weight_page, *wifi_indicator, *wifi, *wifi_warning, *service, *service_icon, *service_warning;
   lv_obj_t *amount, *basis, *status, *bar;
   lv_obj_t *tare_button, *save_button, *jar_picker;
   NewForm new_jar, new_glaze, new_manufacturer, new_container;
-  lv_obj_t *menu_title, *body, *menu_action, *action_label, *edit_title, *edit_context, *entry, *suggestions;
-  lv_obj_t *link_card;
+  lv_obj_t *menu_title, *body, *edit_title, *edit_context, *entry, *suggestions;
+  lv_obj_t *link_action, *link_notice;
   JarHeading home_heading, link_heading;
   lv_style_t *panel, *control_corners;
 };
@@ -31,11 +31,6 @@ inline void label(lv_obj_t *obj, const std::string &text) {
   if (text != lv_label_get_text(obj)) lv_label_set_text(obj, text.c_str());
 }
 inline void visible(lv_obj_t *obj, bool show) { lv_obj_set_flag(obj, LV_OBJ_FLAG_HIDDEN, !show); }
-inline void button(lv_obj_t *obj, lv_obj_t *caption, const std::string &text, bool enabled = true) {
-  visible(obj, !text.empty());
-  label(caption, text);
-  lv_obj_set_state(obj, LV_STATE_DISABLED, !enabled);
-}
 
 class View {
  public:
@@ -64,7 +59,8 @@ class View {
     bool entered = !previous_ || *previous_ != station.screen;
     if (entered) {
       auto *page = form ? form->page : station.screen == Screen::Home ? w.home : w.menu;
-      if (station.screen == Screen::Edit) {
+      if (station.screen == Screen::Link) page = w.link_page;
+      else if (station.screen == Screen::Edit) {
         if (station.editor == Edit::Cost) page = w.cost_page;
         else if (station.editor == Edit::ContainerWeight) page = w.weight_page;
         else page = w.edit;
@@ -77,6 +73,13 @@ class View {
       lv_obj_set_state(form->create, LV_STATE_DISABLED, !can_create_form(now));
       visible(form->notice, !station.notice.empty());
       label(form->notice, station.notice);
+    } else if (station.screen == Screen::Link) {
+      if (entered) {
+        const auto &jar = station.candidate;
+        update_jar_heading(w.link_heading, jar, jar.name, "#" + std::to_string(jar.number), shown_link_name_);
+      }
+      lv_obj_set_state(w.link_action, LV_STATE_DISABLED, !station.present || station.form_busy);
+      label(w.link_notice, station.notice);
     } else if (station.screen == Screen::Home) home(now);
     else if (station.screen == Screen::Edit) {
       if (lv_screen_active() == w.edit) render_edit(entered);
@@ -133,9 +136,9 @@ class View {
     else if (station.screen == Screen::NewGlaze) station.use_glaze();
     else if (station.screen == Screen::NewManufacturer) station.create_manufacturer();
     else if (station.screen == Screen::NewContainer) station.create_container();
-    else if (station.screen == Screen::Link) station.bind();
     dirty_ = true;
   }
+  void link() { if (same_session()) station.bind(); }
   void pick(List list) { if (same_session()) station.pick(list); }
   void edit(Edit field) { if (same_session()) station.edit(field); }
   void back() { station.back(); dirty_ = true; }
@@ -361,41 +364,30 @@ class View {
   }
   void menu() {
     auto &s = station;
-    if (s.screen == Screen::Link) button(w.menu_action, w.action_label, "Link", s.present && !s.form_busy);
-    else visible(w.menu_action, false);
     const bool loading = s.catalog_loading;
     if (!dirty_ && loading == catalog_loading_) return;
     catalog_loading_ = loading;
-    visible(w.link_card, s.screen == Screen::Link);
     lv_obj_clean(w.body);
     clicks_.clear();
     // Event callbacks reference these entries until we rebuild the list.
     clicks_.reserve(s.options.size() + 2);
     y_ = 0;
-    lv_obj_set_height(w.body, s.screen == Screen::Pick ? 252 : 200);
-    if (s.screen == Screen::Pick) {
-      const char *titles[] = {"Manufacturer", "Glaze", "Container", "Location", "Cone", "Product line", "Classification"};
-      label(w.menu_title, titles[static_cast<int>(s.list)]);
-      if (loading) line("Loading...");
-      else if (s.catalog_failed) row("Retry", Row::Reload);
-      else {
-        if (s.list == List::Presets && !s.preset.id.empty()) row("Clear selection", Row::ClearPreset);
-        if (s.list == List::Manufacturers && !s.draft.manufacturer.id.empty()) row("Clear selection", Row::ClearManufacturer);
-        if (s.list == List::Classifications && !s.draft.classification.id.empty()) row("Clear selection", Row::ClearClassification);
-        for (size_t i = 0; i < s.options.size(); ++i) {
-          const auto &o = s.options[i];
-          row(o.code.empty() ? o.label : o.label + " (" + o.code + ")", Row::Option, i);
-        }
-        if (s.list == List::Glazes) row("New glaze...", Row::NewGlaze);
-        else if (s.list == List::Manufacturers) row("New manufacturer...", Row::NewManufacturer);
-        else if (s.list == List::Presets) row("New container...", Row::NewContainer);
-        else if (s.options.empty()) line("No choices available");
+    const char *titles[] = {"Manufacturer", "Glaze", "Container", "Location", "Cone", "Product line", "Classification"};
+    label(w.menu_title, titles[static_cast<int>(s.list)]);
+    if (loading) line("Loading...");
+    else if (s.catalog_failed) row("Retry", Row::Reload);
+    else {
+      if (s.list == List::Presets && !s.preset.id.empty()) row("Clear selection", Row::ClearPreset);
+      if (s.list == List::Manufacturers && !s.draft.manufacturer.id.empty()) row("Clear selection", Row::ClearManufacturer);
+      if (s.list == List::Classifications && !s.draft.classification.id.empty()) row("Clear selection", Row::ClearClassification);
+      for (size_t i = 0; i < s.options.size(); ++i) {
+        const auto &o = s.options[i];
+        row(o.code.empty() ? o.label : o.label + " (" + o.code + ")", Row::Option, i);
       }
-    } else {
-      label(w.menu_title, "Link to jar");
-      update_jar_heading(w.link_heading, s.candidate, s.candidate.name, "#" + std::to_string(s.candidate.number),
-                         shown_link_name_);
-      y_ = lv_obj_get_height(w.link_card) + 8;
+      if (s.list == List::Glazes) row("New glaze...", Row::NewGlaze);
+      else if (s.list == List::Manufacturers) row("New manufacturer...", Row::NewManufacturer);
+      else if (s.list == List::Presets) row("New container...", Row::NewContainer);
+      else if (s.options.empty()) line("No choices available");
     }
     if (!s.notice.empty()) line(s.notice);
     lv_obj_scroll_to_y(w.body, 0, LV_ANIM_OFF);

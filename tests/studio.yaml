@@ -59,7 +59,8 @@ esphome:
           if (lv_obj_has_flag(id(home_tare), LV_OBJ_FLAG_HIDDEN) || lv_obj_has_state(id(home_save), LV_STATE_DISABLED) || strcmp(lv_label_get_text(id(identity)), "#1") ||
               lv_obj_has_state(id(service_icon), LV_STATE_DISABLED) || lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_HIDDEN)) exit(30);
           lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
-          if (lv_screen_active() != id(device_menu)->obj || !lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED)) exit(31);
+          if (lv_screen_active() != id(device_menu)->obj || !lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED) ||
+              strcmp(lv_label_get_text(id(calibration_status)), "Remove jar to calibrate")) exit(31);
           lv_obj_send_event(id(settings_back), LV_EVENT_CLICKED, nullptr);
       - script.execute: {id: tap_screen, x: 90, y: 182}
       - script.wait: tap_screen
@@ -119,8 +120,35 @@ esphome:
           lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
       - delay: 200ms
       - lambda: |-
-          if (glaze::station.screen != glaze::Screen::Link) exit(6);
-          lv_obj_send_event(id(menu_action), LV_EVENT_CLICKED, nullptr);
+          if (lv_screen_active() != id(link_page)->obj || strcmp(lv_label_get_text(id(link_number)), "#2") ||
+              strcmp(lv_label_get_text(id(link_title)), "Seafoam over Blue Rutile") ||
+              strcmp(lv_label_get_text(id(link_maker)), "AMACO • PC-20")) exit(6);
+          lv_obj_send_event(id(link_back), LV_EVENT_CLICKED, nullptr);
+      - delay: 200ms
+      - lambda: |-
+          if (lv_screen_active() != id(weigh_page)->obj || glaze::station.state != glaze::State::Unknown) exit(6);
+          lv_dropdown_open(id(jar_picker)->obj);
+      - delay: 550ms
+      - lambda: |-
+          auto *picker = id(jar_picker)->obj;
+          lv_dropdown_set_selected(picker, 0);
+          lv_dropdown_close(picker);
+          lv_obj_send_event(picker, LV_EVENT_VALUE_CHANGED, nullptr);
+      - delay: 200ms
+      - lambda: |-
+          if (lv_screen_active() != id(link_page)->obj || lv_obj_has_state(id(link_action), LV_STATE_DISABLED)) exit(6);
+          glaze::station.removed(millis());
+      - delay: 200ms
+      - lambda: |-
+          if (!lv_obj_has_state(id(link_action), LV_STATE_DISABLED)) exit(6);
+          lv_obj_send_event(id(link_action), LV_EVENT_CLICKED, nullptr);
+          if (glaze::station.form_busy) exit(6);
+          glaze::station.tag("ABCDEF12", millis());
+      - delay: 200ms
+      - lambda: |-
+          if (lv_obj_has_state(id(link_action), LV_STATE_DISABLED)) exit(6);
+          lv_obj_send_event(id(link_action), LV_EVENT_CLICKED, nullptr);
+          lv_obj_send_event(id(link_action), LV_EVENT_CLICKED, nullptr);
       - delay: 350ms
       - lambda: |-
           if (glaze::station.state != glaze::State::Ready || glaze::station.jar.number != 2) exit(7);
