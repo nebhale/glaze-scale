@@ -162,6 +162,14 @@ tag placement and removal on the actual assembly.
 The build targets the 16 MB, quad-PSRAM Plus board and separate I²C buses for
 touch and the external scale peripherals. Check the board marking and wire
 by signal using the [SpoolmanScale wiring guide](https://niko11111.github.io/SpoolmanScale-Docs/build/wiring/).
+
+Leave the PN532 reset wire disconnected for normal use. Consider adding it if
+the reader repeatedly stops recognizing known-good tags and only unplugging
+and repowering the scale restores scanning after **Retry read** and **Restart
+scale** fail. Recovery through the wire would require both a connection from
+I/O connector pin 7 (GPIO14) to the PN532’s `RSTPDN` input and a firmware
+change to pulse that pin and reinitialize the reader.
+
 Remote service access is described in [Operations](docs/operations.md).
 
 ## Releases
