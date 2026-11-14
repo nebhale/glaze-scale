@@ -1,0 +1,39 @@
+Makefile
+  s_47fa64000534dc::t_1a392bb190db39 14-19
+README.md
+  s_47fa64000534dc::t_6ed240221edd3d 143-145
+  s_47fa64000534dc::t_1a392bb190db39 142,146-147,152
+  s_47fa64000534dc::t_504bafa5bf5be1 148-150
+  s_47fa64000534dc::t_7a592821fba31c 141,151
+.github/workflows/ci.yaml
+  s_47fa64000534dc::t_1a392bb190db39 40
+device.yaml
+  s_47fa64000534dc::t_504bafa5bf5be1 74-77,187-188,191-192
+  s_47fa64000534dc::t_804e0cc97c968d 181-186,190,193
+  s_47fa64000534dc::t_7a592821fba31c 189
+studio/calibration.h
+  s_47fa64000534dc::t_1a392bb190db39 49-51
+  s_47fa64000534dc::t_804e0cc97c968d 14-19,39,44-46,48,52-59
+  s_47fa64000534dc::t_365a18a56a875d 47
+tests/calibration.cpp
+  s_47fa64000534dc::t_365a18a56a875d 24
+  s_47fa64000534dc::t_1a392bb190db39 1-23,25-61
+ui/device.yaml
+  s_47fa64000534dc::t_804e0cc97c968d 48-54,147-152,161-166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "886694fcfb257924b8bbbaeef58f3837d3cb7c70",
+  "prompts": {},
+  "sessions": {
+    "s_47fa64000534dc": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1dbf9-4e5b-71f0-8c52-c5829edab2ee",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
