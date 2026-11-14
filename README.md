@@ -138,6 +138,18 @@ the next flush can lose the latest change. The 2 kg cell needs physical
 qualification: check zero and known masses across its range, repeat after a
 power cycle, and verify readings to ±1 g before studio use.
 
+USB serial logs include `scale_adc` diagnostics every five seconds at DEBUG
+level: the latest ten readings' mean, minimum, maximum, range, age, and ADC
+health. INFO-level `calibration` logs record the empty capture and each
+reference attempt, including counts per gram and the exact rejection reason.
+The screen distinguishes
+missing readings, no load change, a noisy reference, and a noisy empty capture.
+Both empty and loaded ranges must be no greater than the signal change for 1 g.
+The ADC runs at 10 conversions per second for lower noise and 50/60 Hz
+interference rejection; firmware reads it every 125 ms. Diagnostics also show
+the calibrated mean in grams and the current stability decision.
+Hardware drivers retain their WARN/ERROR fault logs.
+
 ## Hardware bench
 
 `make bench` builds a USB bench image for the WT32-SC01 Plus with the same

@@ -71,8 +71,10 @@ sensor:
   - platform: nau7802
     id: raw_load
     i2c_id: scale_bus
-    update_interval: 100ms
-    samples_per_second: 80
+    # The ADC's 10 SPS mode reduces noise and rejects 50/60 Hz interference.
+    # Poll slightly slower than conversions to avoid reading before data is ready.
+    update_interval: 125ms
+    samples_per_second: 10
     on_value:
       then:
         - lambda: |-
@@ -176,3 +178,16 @@ script:
             - script.execute: {id: wifi_result, success: true}
           on_error:
             - script.execute: {id: wifi_result, success: false}
+
+interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          const auto data = glaze::device_calibrator.diagnostics(millis());
+          const auto &[zero, counts_per_gram] = id(platform_calibration);
+          float mean_g = counts_per_gram != 0 ? (data.mean - zero) / counts_per_gram : NAN;
+          ESP_LOGD("scale_adc", "samples=%u age=%ums raw_mean=%.1f min=%.0f max=%.0f range=%.1f empty=%.1f empty_range=%.1f mean_g=%.3f stable=%s failed=%s warning=%s",
+                   unsigned(data.samples), unsigned(data.age_ms), data.mean, data.minimum, data.maximum,
+                   data.maximum - data.minimum, data.empty_mean, data.empty_range, mean_g,
+                   glaze::station.reading.stable(millis()) ? "yes" : "no",
+                   id(raw_load).is_failed() ? "yes" : "no", id(raw_load).status_has_warning() ? "yes" : "no");

@@ -11,6 +11,12 @@ namespace glaze {
 // Platform zero and counts per gram share one ESPHome restoring global.
 using Calibration = std::array<float, 2>;
 
+struct CalibrationDiagnostics {
+  size_t samples;
+  uint32_t age_ms;
+  float mean, minimum, maximum, empty_mean, empty_range;
+};
+
 class Calibrator {
  public:
   void sample(float raw, uint32_t now) {
@@ -30,11 +36,26 @@ class Calibrator {
     return true;
   }
   bool calibrate(Calibration &active, int mass, uint32_t now) const {
-    if (!reference_zero_ || !ready(now) || mass <= 0 || mass > 2000) return false;
+    if (problem(mass, now)) return false;
     float factor = (mean() - *reference_zero_) / mass;
-    if (!std::isfinite(factor) || factor == 0 || !settled(now, factor) || empty_range_ > std::abs(factor)) return false;
     active = {*reference_zero_, factor};
     return true;
+  }
+  const char *problem(int mass, uint32_t now) const {
+    if (!reference_zero_) return "Capture the empty platform first";
+    if (mass <= 0 || mass > 2000) return "Use a steady weight, 1 to 2000 g";
+    if (!ready(now)) return "Waiting for load-cell readings";
+    float factor = (mean() - *reference_zero_) / mass;
+    if (!std::isfinite(factor) || factor == 0) return "No load change. Check wiring";
+    if (!settled(now, factor)) return "Weight moving or signal noisy";
+    if (empty_range_ > std::abs(factor)) return "Empty reading noisy. Start again";
+    return nullptr;
+  }
+  CalibrationDiagnostics diagnostics(uint32_t now) const {
+    auto range = std::minmax_element(raw_.begin(), raw_.end());
+    bool full = size_ == raw_.size();
+    return {size_, now - last_, full ? mean() : NAN, full ? *range.first : NAN,
+            full ? *range.second : NAN, reference_zero_.value_or(NAN), empty_range_};
   }
  private:
   std::array<float, 10> raw_{};

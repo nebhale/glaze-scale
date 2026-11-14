@@ -45,7 +45,13 @@ script:
           then:
             - if:
                 condition:
-                  lambda: return glaze::device_calibrator.empty(millis());
+                  lambda: |-
+                    const auto data = glaze::device_calibrator.diagnostics(millis());
+                    bool captured = glaze::device_calibrator.empty(millis());
+                    ESP_LOGI("calibration", "Empty: %s; samples=%u age=%ums mean=%.1f range=%.1f counts",
+                             captured ? "captured" : "waiting", unsigned(data.samples), unsigned(data.age_ms),
+                             data.mean, data.maximum - data.minimum);
+                    return captured;
                 then:
                   - lvgl.page.show: reference_weight_page
                 else:
@@ -138,6 +144,12 @@ script:
                 condition:
                   lambda: |-
                     int grams = atoi(lv_textarea_get_text(id(reference_grams)));
+                    const auto data = glaze::device_calibrator.diagnostics(millis());
+                    const char *problem = glaze::device_calibrator.problem(grams, millis());
+                    float factor = grams > 0 ? (data.mean - data.empty_mean) / grams : NAN;
+                    ESP_LOGI("calibration", "Reference %dg: %s; samples=%u age=%ums empty=%.1f empty_range=%.1f loaded=%.1f loaded_range=%.1f counts_per_g=%.3f",
+                             grams, problem ? problem : "accepted", unsigned(data.samples), unsigned(data.age_ms),
+                             data.empty_mean, data.empty_range, data.mean, data.maximum - data.minimum, factor);
                     return glaze::device_calibrator.calibrate(id(platform_calibration), grams, millis());
                 then:
                   - lambda: |-
@@ -146,7 +158,12 @@ script:
                   - script.execute: {id: refresh_calibration_tile, just_calibrated: true}
                   - lvgl.page.show: device_menu
                 else:
-                  - lvgl.label.update: {id: reference_prompt, text: "Use a steady weight, 1 to 2000 g"}
+                  - lvgl.label.update:
+                      id: reference_prompt
+                      text: !lambda |-
+                        int grams = atoi(lv_textarea_get_text(id(reference_grams)));
+                        const char *problem = glaze::device_calibrator.problem(grams, millis());
+                        return std::string(problem ? problem : "Try calibration again");
 
 interval:
   - interval: 1s
