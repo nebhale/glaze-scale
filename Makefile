@@ -11,7 +11,12 @@ sim: check-version
 	$(ESPHOME) compile simulator.yaml
 	GLAZE_MANAGER_DIR="$(abspath $(GLAZE_MANAGER_DIR))" "$(MANAGER_PYTHON)" scripts/simulate.py
 
-.PHONY: test-touch
+.PHONY: test-calibration test-touch
+test-calibration:
+	@out=$$(mktemp -d) && \
+		$(CXX) -std=c++17 -Wall -Wextra -Werror tests/calibration.cpp -o "$$out/calibration" && \
+		"$$out/calibration"; result=$$?; rm -rf "$$out"; exit $$result
+
 test-touch: check-version
 	SDL_VIDEODRIVER=dummy $(ESPHOME) run tests/touch.yaml
 
