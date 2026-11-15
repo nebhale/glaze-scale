@@ -170,6 +170,15 @@ scale** fail. Recovery through the wire would require both a connection from
 I/O connector pin 7 (GPIO14) to the PN532’s `RSTPDN` input and a firmware
 change to pulse that pin and reinitialize the reader.
 
+The studio firmware sets the PN532's Type A transmitter drive (`CWGsP`) to **7**
+at each boot. This was verified with a jar tag about **1 mm** from the antenna:
+the default value of 63 briefly detected the tag and then lost it, while 7
+kept it detected after removal and replacement. This is a driver-conductance
+value, not a power percentage. It can reduce the usable reading range. Override
+the `nfc_tx_drive` substitution with a value from 1 to 63 to qualify another
+antenna/tag arrangement; 63 restores NXP's default. The standard ESPHome reader
+continues to handle scanning and tag contents.
+
 Remote service access is described in [Operations](docs/operations.md).
 
 ## Releases
