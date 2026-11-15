@@ -11,7 +11,10 @@ sim: check-version
 	$(ESPHOME) compile simulator.yaml
 	GLAZE_MANAGER_DIR="$(abspath $(GLAZE_MANAGER_DIR))" "$(MANAGER_PYTHON)" scripts/simulate.py
 
-.PHONY: test-calibration test-nfc-rf test-firmware-startup test-touch
+.PHONY: test-version test-calibration test-nfc-rf test-firmware-startup test-touch
+test-version:
+	python3 tests/version.py
+
 test-calibration:
 	@out=$$(mktemp -d) && \
 		$(CXX) -std=c++17 -Wall -Wextra -Werror tests/calibration.cpp -o "$$out/calibration" && \
