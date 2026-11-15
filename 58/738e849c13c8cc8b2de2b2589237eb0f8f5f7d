@@ -1,0 +1,35 @@
+components/scale_version/__init__.py
+  s_ed24279187ab8c::t_95720a3cc3b356 8-9,15
+tests/version.py
+  s_ed24279187ab8c::t_75d576fc2d701c 56
+  s_ed24279187ab8c::t_c5097a468075a3 4,154-166
+  s_ed24279187ab8c::t_96d461dff10547 1-3,5-55,57-153,167-170
+components/scale_version/version.py
+  s_ed24279187ab8c::t_c5097a468075a3 5,12-18,21
+  s_ed24279187ab8c::t_95720a3cc3b356 1-2,6-11,19-20,22-28,33-48,53-74
+  s_ed24279187ab8c::t_75d576fc2d701c 3-4
+  s_ed24279187ab8c::t_96d461dff10547 29-32,49-52
+Makefile
+  s_ed24279187ab8c::t_95720a3cc3b356 14-17
+README.md
+  s_ed24279187ab8c::t_95720a3cc3b356 205-207
+  s_ed24279187ab8c::t_b6c3712f14dc06 82,202-204,208
+.github/workflows/ci.yaml
+  s_ed24279187ab8c::t_95720a3cc3b356 40
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "58738e849c13c8cc8b2de2b2589237eb0f8f5f7d",
+  "prompts": {},
+  "sessions": {
+    "s_ed24279187ab8c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df63-ea4e-7b81-8811-72de080570b9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
