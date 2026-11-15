@@ -1,0 +1,30 @@
+studio/station.h
+  s_ed24279187ab8c::t_849960123364fe 12,14,24,304,348,565
+README.md
+  s_ed24279187ab8c::t_0778fd4af0633f 53-55
+  s_ed24279187ab8c::t_084a73d81dc8ed 51-52
+ui/new-forms.yaml
+  s_ed24279187ab8c::t_849960123364fe 28,41,44,47-51
+tests/untagged.yaml
+  s_ed24279187ab8c::t_bb5b8a55d586c3 26-50,80
+studio/inventory.h
+  s_ed24279187ab8c::t_849960123364fe 33,88
+studio/view.h
+  s_ed24279187ab8c::t_849960123364fe 375,422,430
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2248985599abf5730a6beabf7b760bb65b471df5",
+  "prompts": {},
+  "sessions": {
+    "s_ed24279187ab8c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a1df63-ea4e-7b81-8811-72de080570b9",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Ben Hale <nebhale@nebhale.com>"
+    }
+  }
+}
