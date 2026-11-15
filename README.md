@@ -79,7 +79,7 @@ Tap the gear to open **Settings** from the weighing screen. The red **×** retur
 | **Connection** | The picker shows the current network and scans nearby Wi-Fi on entry. Pick a network, enter its password, and tap **Connect** to switch. The password is visible as you type and the field clears when you connect or cancel. **Scan now** refreshes the list. The simulator offers **Workshop** with password `studio`. |
 | **Scale** | Calibrate with an empty platform and a known reference mass. In the simulator, press **0**, capture the empty platform, press **↑** ten times, wait a second, and enter **100** grams. |
 | **Display** | Adjust brightness from 10–100% and choose a screen-off delay of 30 seconds or 1, 2, 5, or 10 minutes. Defaults are 100% and 2 minutes. Both use ESPHome’s normal persistence. Upgrading from the old display settings restores these two defaults once. |
-| **System** | View the current IP address, Glaze Scale software version, and ESPHome version. The scale version comes from `git describe --tags --always --dirty` at build time. |
+| **System** | View the current IP address, Glaze Scale software version, and ESPHome version. Released builds show their release tag. Development and modified builds retain a Git revision or `-dirty` suffix. |
 
 A tap wakes the screen and leaves the underlying control untouched. A detected
 NFC tag or a stable increase of at least 3 g on the calibrated scale also wakes
@@ -198,6 +198,13 @@ and studio firmware. It attaches the tested `glaze-scale-<tag>.tar.gz` and
 before extracting. The archive includes its tag for Settings → System when
 building outside Git. Build the studio image locally with your own
 `secrets.yaml`. The bench target can be built and flashed directly over USB.
+
+When a Git build has no local tag for its commit, including ESPHome's shallow
+dashboard caches, version detection makes a read-only query to `origin` for
+matching release tags. It leaves the checkout
+unchanged and falls back to the local Git description if the remote is
+unavailable. The query has a ten-second timeout; release archives and checkouts
+with an exact local tag need no network lookup.
 
 ## License
 
