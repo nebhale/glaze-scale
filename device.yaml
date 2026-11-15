@@ -1,10 +1,23 @@
+substitutions:
+  # CWGsP conductance, not a power percentage. NXP's default is 63.
+  nfc_tx_drive: "7"
+
 esphome:
   name: glaze-scale
   friendly_name: Glaze Scale
-  includes: [<esp_wifi.h>]
+  includes: [<esp_wifi.h>, studio/nfc_rf.h]
   on_boot:
-    priority: 300  # Retain all nearby SSIDs from ESPHome's initial connection scan.
+    priority: 300  # After reader setup (600), before Wi-Fi setup can run polling.
     then:
+      - lambda: |-
+          if (id(reader).is_failed()) return;
+          if (glaze::configure_nfc_drive(*id(reader), ${nfc_tx_drive})) {
+            ESP_LOGI("nfc_rf", "Transmitter drive: %u (CWGsP)", unsigned(${nfc_tx_drive}));
+          } else {
+            ESP_LOGE("nfc_rf", "Could not configure transmitter drive");
+            id(reader).mark_failed();
+          }
+      # Retain all nearby SSIDs from ESPHome's initial connection scan.
       - lambda: id(studio_wifi).set_keep_scan_results(true);
 
 packages:

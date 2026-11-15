@@ -37,7 +37,7 @@ jobs:
           GLAZE_MANAGER_DIR: ${{ github.workspace }}/manager-under-test
         run: |
           esphome config review.yaml > /dev/null
-          make test-calibration test-touch test-studio
+          make test-calibration test-nfc-rf test-firmware-startup test-touch test-studio
   firmware:
     name: Firmware and release package
     runs-on: ubuntu-24.04

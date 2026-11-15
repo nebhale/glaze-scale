@@ -11,11 +11,19 @@ sim: check-version
 	$(ESPHOME) compile simulator.yaml
 	GLAZE_MANAGER_DIR="$(abspath $(GLAZE_MANAGER_DIR))" "$(MANAGER_PYTHON)" scripts/simulate.py
 
-.PHONY: test-calibration test-touch
+.PHONY: test-calibration test-nfc-rf test-firmware-startup test-touch
 test-calibration:
 	@out=$$(mktemp -d) && \
 		$(CXX) -std=c++17 -Wall -Wextra -Werror tests/calibration.cpp -o "$$out/calibration" && \
 		"$$out/calibration"; result=$$?; rm -rf "$$out"; exit $$result
+
+test-nfc-rf:
+	@out=$$(mktemp -d) && \
+		$(CXX) -std=c++17 -Wall -Wextra -Werror tests/nfc-rf.cpp -o "$$out/nfc-rf" && \
+		"$$out/nfc-rf"; result=$$?; rm -rf "$$out"; exit $$result
+
+test-firmware-startup: check-version
+	python3 tests/firmware-startup.py $(ESPHOME)
 
 test-touch: check-version
 	SDL_VIDEODRIVER=dummy $(ESPHOME) run tests/touch.yaml
