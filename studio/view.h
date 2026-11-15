@@ -372,7 +372,7 @@ class View {
     // Event callbacks reference these entries until we rebuild the list.
     clicks_.reserve(s.options.size() + 2);
     y_ = 0;
-    const char *titles[] = {"Manufacturer", "Glaze", "Container", "Location", "Cone", "Product line", "Classification"};
+    const char *titles[] = {"Manufacturer", "Glaze", "Container", "Location", "Cone", "Viscosity", "Product line", "Classification"};
     label(w.menu_title, titles[static_cast<int>(s.list)]);
     if (loading) line("Loading...");
     else if (s.catalog_failed) row("Retry", Row::Reload);
@@ -419,7 +419,7 @@ class View {
   }
   void render_edit(bool entered) {
     auto &s = station;
-    const bool autocomplete = s.editor == Edit::Location || s.editor == Edit::Cone || s.editor == Edit::ProductLine;
+    const bool autocomplete = s.editor == Edit::Location || s.editor == Edit::Cone || s.editor == Edit::Viscosity || s.editor == Edit::ProductLine;
     const char *title = "", *value = "";
     switch (s.editor) {
       case Edit::Location: title = "Location"; value = s.location.c_str(); break;
@@ -427,6 +427,7 @@ class View {
       case Edit::ManufacturerName: title = "Name"; break;
       case Edit::ProductCode: title = "Product code"; break;
       case Edit::Cone: title = "Cone"; break;
+      case Edit::Viscosity: title = "Viscosity"; break;
       case Edit::ProductLine: title = "Product line"; break;
       case Edit::ContainerName: title = "Name"; value = s.container_name.c_str(); break;
       default: return;

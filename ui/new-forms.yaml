@@ -25,7 +25,7 @@ lvgl:
       vars:
         form: new_glaze
         title: New glaze
-        captions: [glaze_name_text, glaze_code_text, glaze_cone_text, glaze_class_text, glaze_maker_text, glaze_line_text]
+        captions: [glaze_name_text, glaze_code_text, glaze_cone_text, glaze_viscosity_text, glaze_class_text, glaze_maker_text, glaze_line_text]
         fields:
           - !include
             file: form-field.yaml
@@ -38,14 +38,17 @@ lvgl:
             vars: {field: glaze_cone, top: 50, left: 0, width: 228, prompt: Cone, value: draft.cone, action: pick(glaze::List::Cones)}
           - !include
             file: form-field.yaml
-            vars: {field: glaze_class, top: 50, left: 236, width: 228, prompt: Classification, value: draft.classification.label, action: pick(glaze::List::Classifications)}
+            vars: {field: glaze_viscosity, top: 50, left: 236, width: 228, prompt: Viscosity, value: draft.viscosity, action: pick(glaze::List::Viscosities)}
           - !include
             file: form-field.yaml
-            vars: {field: glaze_maker, top: 100, left: 0, width: 228, prompt: Manufacturer, value: draft.manufacturer.label, action: pick(glaze::List::Manufacturers)}
+            vars: {field: glaze_class, top: 100, left: 0, width: 228, prompt: Classification, value: draft.classification.label, action: pick(glaze::List::Classifications)}
           - !include
             file: form-field.yaml
-            vars: {field: glaze_line, top: 100, left: 236, width: 228, prompt: Product line, value: draft.line, action: pick(glaze::List::ProductLines)}
-          - label: {id: new_glaze_notice, x: 0, y: 150, width: 100%, hidden: true, text: ""}
+            vars: {field: glaze_maker, top: 100, left: 236, width: 228, prompt: Manufacturer, value: draft.manufacturer.label, action: pick(glaze::List::Manufacturers)}
+          - !include
+            file: form-field.yaml
+            vars: {field: glaze_line, top: 150, prompt: Product line, value: draft.line, action: pick(glaze::List::ProductLines)}
+          - label: {id: new_glaze_notice, x: 0, y: 200, width: 100%, hidden: true, text: ""}
     - !include
       file: new-form.yaml
       vars:
