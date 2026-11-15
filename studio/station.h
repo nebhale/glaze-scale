@@ -9,9 +9,9 @@ namespace glaze {
 
 enum class Screen { Home, Setup, NewContainer, NewGlaze, NewManufacturer, Pick, Edit, Link };
 enum class State { Idle, Lookup, Unknown, ManualSetup, Ready, Pending, Saved };
-enum class Edit { Location, Cost, GlazeName, ContainerName, ContainerWeight, ProductCode, Cone, ProductLine, ManufacturerName };
+enum class Edit { Location, Cost, GlazeName, ContainerName, ContainerWeight, ProductCode, Cone, Viscosity, ProductLine, ManufacturerName };
 struct GlazeDraft {
-  std::string name, code, cone, line;
+  std::string name, code, cone, viscosity, line;
   Option manufacturer, classification;
 
   bool ready() const { return !name.empty(); }
@@ -21,6 +21,7 @@ struct GlazeDraft {
     if (!manufacturer.id.empty()) out["manufacturer_id"] = manufacturer.id;
     if (!code.empty()) out["product_code"] = code;
     if (!cone.empty()) out["cone"] = cone;
+    if (!viscosity.empty()) out["viscosity"] = viscosity;
     if (!line.empty()) out["product_line"] = line;
     if (!classification.id.empty()) out["classification"] = classification.id;
   }
@@ -300,6 +301,7 @@ class Station {
     switch (kind) {
       case List::Locations: edit(Edit::Location); break;
       case List::Cones: edit(Edit::Cone); break;
+      case List::Viscosities: edit(Edit::Viscosity); break;
       case List::ProductLines: edit(Edit::ProductLine); break;
       default: screen = Screen::Pick; break;
     }
@@ -343,6 +345,7 @@ class Station {
       case Edit::GlazeName: return &draft.name;
       case Edit::ProductCode: return &draft.code;
       case Edit::Cone: return &draft.cone;
+      case Edit::Viscosity: return &draft.viscosity;
       case Edit::ProductLine: return &draft.line;
       case Edit::ManufacturerName: return &manufacturer_name;
       default: return nullptr;
@@ -559,7 +562,7 @@ class Station {
     const bool rejected = r.code == 400 || r.code == 404 || r.code == 409 || r.code == 410 || r.code == 422;
     if (!confirmed && !rejected) { notice = "Awaiting confirmation"; backoff(); return; }
 
-    if (setup) inventory.changed({List::Jars, List::Unlinked, List::Glazes, List::Locations, List::Cones, List::ProductLines});
+    if (setup) inventory.changed({List::Jars, List::Unlinked, List::Glazes, List::Locations, List::Cones, List::Viscosities, List::ProductLines});
     else inventory.changed({List::Jars});
     const auto finished = std::move(pending_);
     pending_ = {};

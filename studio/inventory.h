@@ -30,7 +30,7 @@ struct Jar {
   bool valid() const { return !id.empty() && number > 0 && !name.empty() && revision > 0; }
 };
 
-enum class List { Manufacturers, Glazes, Presets, Locations, Cones, ProductLines, Classifications, Jars, Unlinked };
+enum class List { Manufacturers, Glazes, Presets, Locations, Cones, Viscosities, ProductLines, Classifications, Jars, Unlinked };
 struct Option { std::string id, label, code; };
 
 struct Choices {
@@ -85,7 +85,7 @@ class Inventory {
   std::map<List, CatalogEntry> entries_;
   static std::string options_path(List list) {
     static constexpr const char *names[] = {"manufacturers","glazes","presets","locations","cones",
-        "product-lines","classifications","jars","unlinked-jars"};
+        "viscosities","product-lines","classifications","jars","unlinked-jars"};
     return std::string("/device/options/") + names[static_cast<size_t>(list)] + "?";
   }
 

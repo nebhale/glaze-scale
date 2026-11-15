@@ -48,7 +48,11 @@ the jar and its first settled weight together. An unknown tag shows **Unlinked j
 Open its dropdown to link an untagged jar or choose **New jar...**. Choose a
 glaze, optionally select a container preset, enter a location or tap a matching
 suggestion, and enter the cost in USD. **Create** links the tag and
-records the first reading. **New glaze...** opens glaze creation.
+records the first reading. **New glaze...** opens glaze creation. The optional
+**Viscosity** field accepts free text and suggests values saved in Glaze Manager.
+
+![New glaze with optional viscosity between cone and classification](docs/new-glaze-viscosity.png)
+
 **Save** and **New jar → Create** keep one pending request in RAM. While the
 scale is powered, you can lift or replace the jar and it will keep retrying the
 original weight with the same request ID. Restarting or unplugging the scale

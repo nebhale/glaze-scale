@@ -23,6 +23,31 @@
 - delay: 200ms
 - lambda: |-
     if (lv_screen_active() != id(new_glaze_page)->obj || !lv_obj_has_state(id(new_glaze_create), LV_STATE_DISABLED)) exit(156);
+    if (strcmp(lv_label_get_text(id(glaze_viscosity_text)), "Viscosity")) exit(162);
+    lv_obj_send_event(id(glaze_viscosity), LV_EVENT_CLICKED, nullptr);
+- delay: 400ms
+- lambda: |-
+    if (lv_screen_active() != id(edit_page)->obj || strcmp(lv_label_get_text(id(edit_title)), "Viscosity")) exit(162);
+    lv_textarea_set_text(id(edit_value), "  45 seconds (Zahn #2)  ");
+    lv_obj_send_event(id(input_keys)->obj, LV_EVENT_READY, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(glaze_viscosity_text)), "45 seconds (Zahn #2)")) exit(162);
+    JsonDocument payload;
+    glaze::station.draft.write(payload.to<JsonObject>());
+    if (strcmp(payload["viscosity"] | "", "45 seconds (Zahn #2)")) exit(162);
+    if (!lv_obj_has_state(id(new_glaze_create), LV_STATE_DISABLED)) exit(162);
+    lv_obj_send_event(id(glaze_viscosity), LV_EVENT_CLICKED, nullptr);
+- delay: 400ms
+- lambda: |-
+    lv_textarea_set_text(id(edit_value), "");
+    lv_obj_send_event(id(input_keys)->obj, LV_EVENT_READY, nullptr);
+- delay: 200ms
+- lambda: |-
+    if (strcmp(lv_label_get_text(id(glaze_viscosity_text)), "Viscosity")) exit(162);
+    JsonDocument payload;
+    glaze::station.draft.write(payload.to<JsonObject>());
+    if (!payload["viscosity"].isUnbound()) exit(162);
     lv_obj_send_event(id(glaze_maker), LV_EVENT_CLICKED, nullptr);
 - delay: 400ms
 - lambda: lv_obj_send_event(lv_obj_get_child(id(menu_body), -1), LV_EVENT_CLICKED, nullptr);
@@ -52,6 +77,7 @@
 - delay: 200ms
 - lambda: |-
     if (strcmp(lv_label_get_text(id(glaze_name_text)), "Mist Blue") || lv_obj_has_state(id(new_glaze_create), LV_STATE_DISABLED)) exit(158);
+    if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("new-glaze-viscosity");
     lv_obj_send_event(id(new_glaze_create), LV_EVENT_CLICKED, nullptr);
 - delay: 200ms
 - lambda: |-
