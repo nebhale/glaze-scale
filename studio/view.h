@@ -30,7 +30,7 @@ struct Widgets {
 inline void label(lv_obj_t *obj, const std::string &text) {
   if (text != lv_label_get_text(obj)) lv_label_set_text(obj, text.c_str());
 }
-inline void visible(lv_obj_t *obj, bool show) { lv_obj_set_flag(obj, LV_OBJ_FLAG_HIDDEN, !show); }
+inline void visible(lv_obj_t *obj, bool show) { lv_obj_set_hidden(obj, !show); }
 
 class View {
  public:
@@ -45,13 +45,13 @@ class View {
     if (!w.home) return;
     visible(w.wifi_warning, !wifi_connected);
     lv_obj_set_state(w.wifi, LV_STATE_CHECKED, !wifi_connected);
-    lv_obj_set_flag(w.wifi_indicator, LV_OBJ_FLAG_CLICKABLE, !wifi_connected);
+    lv_obj_set_clickable(w.wifi_indicator, !wifi_connected);
     const auto status = station.manager.status;
     const bool unavailable = status == ServiceStatus::Unavailable;
     lv_obj_set_state(w.service_icon, LV_STATE_DISABLED, !unavailable && (!wifi_connected || status == ServiceStatus::Unchecked));
     lv_obj_set_state(w.service_icon, LV_STATE_CHECKED, unavailable);
     visible(w.service_warning, unavailable);
-    lv_obj_set_flag(w.service, LV_OBJ_FLAG_CLICKABLE, unavailable);
+    lv_obj_set_clickable(w.service, unavailable);
   }
   void render(uint32_t now) {
     if (!w.home || settings_open) return;
