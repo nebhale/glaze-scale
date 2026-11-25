@@ -1,6 +1,6 @@
 - lambda: |-
-    if (lv_obj_has_flag(id(wifi_indicator), LV_OBJ_FLAG_CLICKABLE) ||
-        lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_CLICKABLE)) exit(100);
+    if (lv_obj_is_clickable(id(wifi_indicator)) ||
+        lv_obj_is_clickable(id(home_service))) exit(100);
     id(connected_ssid).clear();
 - delay: 250ms
 - lambda: |-
@@ -37,23 +37,23 @@
     lv_obj_send_event(id(home_service), LV_EVENT_CLICKED, nullptr);
 - delay: 250ms
 - lambda: |-
-    if (lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN)) exit(106);
+    if (lv_obj_is_hidden(id(manager_dialog))) exit(106);
     if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("inventory-retry");
     lv_obj_send_event(id(manager_cancel), LV_EVENT_CLICKED, nullptr);
-    if (!lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN)) exit(107);
+    if (!lv_obj_is_hidden(id(manager_dialog))) exit(107);
     lv_obj_send_event(id(home_service), LV_EVENT_CLICKED, nullptr);
     id(connected_ssid).clear();
     lv_obj_send_event(id(manager_recover), LV_EVENT_CLICKED, nullptr);
 - delay: 300ms
 - lambda: |-
-    if (lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
+    if (lv_obj_is_hidden(id(manager_dialog)) ||
         strcmp(lv_label_get_text(id(manager_reason)), "Reconnect Wi-Fi, then retry.")) exit(116);
     id(connected_ssid) = "Studio Wi-Fi";
     glaze::station.manager.network_changed();
     lv_obj_send_event(id(manager_recover), LV_EVENT_CLICKED, nullptr);
 - delay: 300ms
 - lambda: |-
-    if (lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
+    if (lv_obj_is_hidden(id(manager_dialog)) ||
         strcmp(lv_label_get_text(id(manager_reason)), "Inventory is still unavailable. Try again.")) exit(108);
     if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("inventory-still-unavailable");
     id(configure_manager).execute();
@@ -61,6 +61,6 @@
 - delay: 300ms
 - lambda: |-
     if (glaze::station.manager.status != glaze::ServiceStatus::Available ||
-        !lv_obj_has_flag(id(manager_dialog), LV_OBJ_FLAG_HIDDEN) ||
-        !lv_obj_has_flag(id(service_warning), LV_OBJ_FLAG_HIDDEN) ||
-        lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_CLICKABLE)) exit(109);
+        !lv_obj_is_hidden(id(manager_dialog)) ||
+        !lv_obj_is_hidden(id(service_warning)) ||
+        lv_obj_is_clickable(id(home_service))) exit(109);

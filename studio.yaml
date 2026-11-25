@@ -25,6 +25,7 @@ image:
     transparency: alpha_channel
 
 esphome:
+  min_version: 2026.11.0
   includes:
     - ui/palettes.h
     - studio/nfc_health.h

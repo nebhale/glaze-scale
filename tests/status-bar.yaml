@@ -25,7 +25,7 @@
             lv_obj_get_coords(slot.icon, &icon);
             if (!lv_obj_is_visible(slot.icon) || button.x1 <= right || icon.x1 < button.x1 || icon.x2 > button.x2 ||
                 lv_obj_is_visible(slot.warning) != failed || lv_obj_has_state(slot.icon, LV_STATE_CHECKED) != failed ||
-                lv_obj_has_flag(slot.button, LV_OBJ_FLAG_CLICKABLE) != failed) {
+                lv_obj_is_clickable(slot.button) != failed) {
               ESP_LOGE("test", "Status slot %u clipped, out of order or in wrong state (mask %u)", i, unsigned(iteration)); exit(113);
             }
             if (failed) {

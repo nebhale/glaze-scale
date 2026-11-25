@@ -169,7 +169,7 @@
 - delay: 900ms
 - lambda: |-
     if (strcmp(lv_label_get_text(id(identity)), "#2") || strcmp(lv_label_get_text(id(weight_basis)), "of 800 g remaining") ||
-        lv_obj_has_flag(id(jar_picker)->obj, LV_OBJ_FLAG_HIDDEN)) exit(81);
+        lv_obj_is_hidden(id(jar_picker)->obj)) exit(81);
     if (strcmp(lv_label_get_text(id(amount)), "100 g") || strcmp(lv_label_get_text(id(condition_label)), "Low stock") ||
         lv_obj_has_state(id(home_tare), LV_STATE_DISABLED) ||
         lv_obj_has_state(id(home_save), LV_STATE_DISABLED)) exit(44);

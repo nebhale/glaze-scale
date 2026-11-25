@@ -54,10 +54,10 @@ esphome:
           if (strcmp(lv_label_get_text(id(jar_title)), "Seafoam over Blue Rutile") ||
               strcmp(lv_label_get_text(id(maker_label)), "AMACO • PC-20") ||
               strcmp(lv_label_get_text(id(weight_basis)), "of 800 g remaining") ||
-              lv_bar_get_value(id(fill_level)) != 63 || !lv_obj_has_flag(id(jar_picker)->obj, LV_OBJ_FLAG_HIDDEN)) exit(79);
+              lv_bar_get_value(id(fill_level)) != 63 || !lv_obj_is_hidden(id(jar_picker)->obj)) exit(79);
           if (getenv("ESPHOME_SNAPSHOT_DIR")) id(panel).take_snapshot("studio-ready");
-          if (lv_obj_has_flag(id(home_tare), LV_OBJ_FLAG_HIDDEN) || lv_obj_has_state(id(home_save), LV_STATE_DISABLED) || strcmp(lv_label_get_text(id(identity)), "#1") ||
-              lv_obj_has_state(id(service_icon), LV_STATE_DISABLED) || lv_obj_has_flag(id(home_service), LV_OBJ_FLAG_HIDDEN)) exit(30);
+          if (lv_obj_is_hidden(id(home_tare)) || lv_obj_has_state(id(home_save), LV_STATE_DISABLED) || strcmp(lv_label_get_text(id(identity)), "#1") ||
+              lv_obj_has_state(id(service_icon), LV_STATE_DISABLED) || lv_obj_is_hidden(id(home_service))) exit(30);
           lv_obj_send_event(id(home_settings), LV_EVENT_CLICKED, nullptr);
           if (lv_screen_active() != id(device_menu)->obj || !lv_obj_has_state(id(calibrate_key), LV_STATE_DISABLED) ||
               strcmp(lv_label_get_text(id(calibration_status)), "Remove jar to calibrate")) exit(31);
@@ -90,12 +90,12 @@ esphome:
           lv_obj_send_event(id(home_save), LV_EVENT_CLICKED, nullptr);
       - delay: 350ms
       - lambda: |-
-          if (glaze::station.state != glaze::State::Pending || lv_obj_has_flag(id(service_warning), LV_OBJ_FLAG_HIDDEN)) exit(10);
+          if (glaze::station.state != glaze::State::Pending || lv_obj_is_hidden(id(service_warning))) exit(10);
           id(simulated_load) = 760;
       - delay: 1400ms
       - lambda: |-
           if (glaze::station.state != glaze::State::Saved || glaze::station.saved_gross != 756 ||
-              !lv_obj_has_flag(id(service_warning), LV_OBJ_FLAG_HIDDEN)) exit(4);
+              !lv_obj_is_hidden(id(service_warning))) exit(4);
           glaze::station.removed(millis());
       - delay: 800ms
       - lambda: |-
@@ -192,7 +192,7 @@ esphome:
           if (glaze::station.state != glaze::State::Saved || glaze::station.saved_number != 10) exit(9);
           if (glaze::station.jar.tare || strcmp(lv_label_get_text(id(amount)), "600 g") ||
               strcmp(lv_label_get_text(id(weight_basis)), "of 600 g remaining") ||
-              lv_obj_has_flag(id(fill_level), LV_OBJ_FLAG_HIDDEN) || lv_bar_get_value(id(fill_level)) != 100) exit(80);
+              lv_obj_is_hidden(id(fill_level)) || lv_bar_get_value(id(fill_level)) != 100) exit(80);
           // Set a persistent zero with a tag present and check it again after restarting.
           lv_obj_send_event(id(home_tare), LV_EVENT_CLICKED, nullptr);
           if (id(platform_calibration)[0] != 600) exit(77);
